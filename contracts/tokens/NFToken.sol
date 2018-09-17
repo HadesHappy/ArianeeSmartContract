@@ -341,12 +341,13 @@ contract NFToken is
    * @notice Does NO checks.
    * @param _to Address of a new owner.
    * @param _tokenId The NFT that is being transferred.
+   * Arianee change: Change from "private" to "internal" to let asyncTransfer 
    */
   function _transfer(
     address _to,
     uint256 _tokenId
   )
-    private
+    internal
   {
     address from = idToOwner[_tokenId];
     clearApproval(_tokenId);
