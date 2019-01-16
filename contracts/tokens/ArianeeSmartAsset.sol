@@ -1,8 +1,8 @@
 pragma solidity ^0.4.23;
 
-import "../tokens/NFTokenMetadata.sol";
+import "./NFTokenMetadata.sol";
 //import "../tokens/ERC721Enumerable.sol";
-import "../tokens/NFTokenEnumerable.sol";
+import "./NFTokenEnumerable.sol";
 
 
 
