@@ -41,6 +41,9 @@ contract ArianeeSmartAsset is
   // mapping from token id to timestamp
   mapping (uint256 => uint256) public tokenCreation;
   
+  // mapping from token id to lost flag
+  mapping (uint256 => bool) public tokenLost;
+  
   uint8 constant ABILITY_CREATE_ASSET = 1;
   uint8 constant ABILITY_REVOKE_ASSET = 2;
   uint8 constant ABILITY_TOGGLE_TRANSFERS = 3;
@@ -94,6 +97,7 @@ contract ArianeeSmartAsset is
     encryptedInitialKey[_id] = _encryptedInitialKey;
     idToUri[_id]=_uri;
     tokenCreation[_id] = block.timestamp;
+    tokenLost[_id] = false;
     
     tokenAccess[_id][0]=false;
     tokenAccess[_id][1]=false;
@@ -269,6 +273,23 @@ contract ArianeeSmartAsset is
     );
 
     tokenAccess[_tokenId][1] = false;    
+  }
+  
+  /**
+   * @dev Set a NFT as lost and block all transation
+   * @param _tokenId uint256 ID of the token to set lost
+   * @param _isLost boolean to set the token lost or not
+  */
+  function setTokenLost(uint256 _tokenId, bool _isLost) public isNotPaused() onlyOwnerOf(_tokenId){
+      tokenLost[_tokenId] = _isLost;
+  }
+  
+  /**
+   * @dev Check if a NFT is not lost
+  */
+  modifier isTokenNotLost(uint256 _tokenId) {
+      require(!tokenLost[_tokenId]);
+      _;
   }
 
 
