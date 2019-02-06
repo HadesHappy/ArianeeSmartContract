@@ -1,9 +1,9 @@
-pragma solidity ^0.4.23;
+pragma solidity 0.5.1;
 
-import "./NFTokenMetadata.sol";
+//import "./NFTokenMetadata.sol";
 //import "../tokens/ERC721Enumerable.sol";
-import "./NFTokenEnumerable.sol";
-
+//import "./NFTokenEnumerable.sol";
+/*
 
 
 import "@0xcert/ethereum-utils/contracts/ownership/Ownable.sol";
@@ -62,4 +62,4 @@ contract ArianeeIdentity is
   }
 
 
-}
+}*/

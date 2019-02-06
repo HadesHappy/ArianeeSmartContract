@@ -1,22 +1,19 @@
-pragma solidity ^0.4.23;
-
-import "./NFTokenMetadata.sol";
-//import "../tokens/ERC721Enumerable.sol";
-import "./NFTokenEnumerable.sol";
+pragma solidity 0.5.1;
 
 
+import "@0xcert/ethereum-utils-contracts/src/contracts/math/safe-math.sol";
+import "@0xcert/ethereum-utils-contracts/src/contracts/permission/abilitable.sol";
+import "@0xcert/ethereum-utils-contracts/src/contracts/utils/address-utils.sol";
 
-import "@0xcert/ethereum-utils/contracts/ownership/Ownable.sol";
+import "@0xcert/ethereum-erc721-contracts/src/contracts/nf-token-metadata-enumerable.sol";
  
 contract ArianeeSmartAsset is
-  NFTokenMetadata, 
-  NFTokenEnumerable  ,
-  Ownable
+  NFTokenMetadataEnumerable,
+  Abilitable
 {
 
-
   // Mapping from token id to bool as for request as transfer knowing the tokenkey
-  mapping (uint256 => bool) public isTokenRequestable;  
+  mapping (uint256 => bool) public isTokenRequestable;
 
   // Mapping from token id to TokenKey (if requestable)
   mapping (uint256 => bytes32) public encryptedTokenKey;  
@@ -26,7 +23,38 @@ contract ArianeeSmartAsset is
 
   // Mapping from token id to TokenKey (if service)
   mapping (uint256 => bytes32) public encryptedTokenKeyService;
+  
+  // Mapping from token id to initial key
+  mapping (uint256 => bytes32) public encryptedInitialKey;
 
+  // Mapping from token id to issuer
+  mapping (uint256 => address) public tokenIssuer;
+  
+  // Mapping from token id to URI
+  mapping(uint256 => string) idToUri;
+  
+  mapping (uint256=> mapping(uint256 => bool)) tokenAccess; // 0=view;1=service;2=transfert
+  
+  //  Mapping from token id to TokenImprintUpdate
+  mapping (uint256 => bytes32) internal idToImprint;
+  
+  // mapping from token id to timestamp
+  mapping (uint256 => uint256) public tokenCreation;
+  
+  uint8 constant ABILITY_CREATE_ASSET = 1;
+  uint8 constant ABILITY_REVOKE_ASSET = 2;
+  uint8 constant ABILITY_TOGGLE_TRANSFERS = 3;
+  uint8 constant ABILITY_UPDATE_ASSET_IMPRINT = 4;
+
+  /**
+   * @dev Error constants.
+   */
+  string constant CAPABILITY_NOT_SUPPORTED = "007001";
+  string constant TRANSFERS_DISABLED = "007002";
+  string constant NOT_VALID_XCERT = "007003";
+  string constant NOT_OWNER_OR_OPERATOR = "007004";
+  
+  
 
   /**
    * @dev Emits when a service id added to any NFT. This event emits when NFTs are
@@ -37,6 +65,11 @@ contract ArianeeSmartAsset is
     uint256 indexed _tokenId,
     string serviceType,
     string description
+  );
+  
+  event TokenImprintUpdate(
+    uint256 indexed _tokenId,
+    bytes32 _imprint
   );
 
 
@@ -51,45 +84,70 @@ contract ArianeeSmartAsset is
 
   /**
    * @dev Public function to mint a specific token and assign metadata
-   * @param _for receiver of the token to mint
-   * @param value json metadata (in blockchain for now)
+   * @param _to receiver of the token to mint
    */
-  function createFor(address _for, string value) public returns (uint256) {
-    uint256 currentToken = this.totalSupply() + 1;
-
-    _mint(_for ,currentToken);
-    _setTokenUri(currentToken,value);
-
-    // TODO return false if value not well formatted
-    return currentToken;
-
+  
+   function createFor(address _to, uint256 _id, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey) public hasAbility(ABILITY_CREATE_ASSET) {
+    super._create(_to, _id);
+    idToImprint[_id] = _imprint;
+    tokenIssuer[_id] = tx.origin;
+    encryptedInitialKey[_id] = _encryptedInitialKey;
+    idToUri[_id]=_uri;
+    tokenCreation[_id] = block.timestamp;
+    
+    tokenAccess[_id][0]=false;
+    tokenAccess[_id][1]=false;
+    tokenAccess[_id][2]=false;
   }
 
 
   /**
    * @dev Public function to mint a specific token and assign metadata with token for request
-   * @param _for receiver of the token to mint
-   * @param value json metadata (in blockchain for now)
+   * @param _to receiver of the token to mint
    */
-  function createForWithToken(address _for, string value, bytes32 _encryptedTokenKey) public returns (uint256) {
-    uint256 currentToken = createFor(_for, value);
-
-    encryptedTokenKey[currentToken] = _encryptedTokenKey;
-    isTokenRequestable[currentToken] = true;
-
-    // TODO return false if value not well formatted
-    return currentToken;
-
+  function createForWithToken(address _to, uint256 _id, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey, bytes32 _encryptedTokenKey) public {
+    createFor(_to, _id, _imprint, _uri, _encryptedInitialKey);
+    
+    encryptedTokenKey[_id] = _encryptedTokenKey;
+    tokenAccess[_id][2]=true;
+  }
+  
+  function getTokenToIssuer(uint256 _id) public {
+      require((block.timestamp - tokenCreation[_id] )  < 2678400); // created within a month
+      require(tx.origin == tokenIssuer[_id]);
+      idToApproval[_id] = tx.origin;
+      _transferFrom(idToOwner[_id], tokenIssuer[_id], _id);
   }
 
   /**
    * @dev Public function to mint a specific token for sender and assign metadata
-   * @param value json metadata (in blockchain currently)
+   * OLD CODE
    */
-  function create (string value) public returns (uint256) {
-    return createFor(msg.sender,value);
+  /*function create (uint256 _id, bytes32 _imprint) public {
+    return createFor(msg.sender, _id, _imprint);
+  }*/
+  
+  modifier ownerIsIssuer(uint256 _tokenId)
+  {
+      require(idToOwner[_tokenId] == tokenIssuer[_tokenId]);
+   _;   
   }
-
+  
+  function updateTokenURI(
+    uint256 _tokenId,
+    bytes32 _imprint,
+    string calldata _uri
+  )
+    external
+    ownerIsIssuer(_tokenId)
+  {
+    require(supportedInterfaces[0xbda0e852], CAPABILITY_NOT_SUPPORTED);
+    require(idToOwner[_tokenId] != address(0), NOT_VALID_XCERT);
+    idToUri[_tokenId] = _uri;
+    idToImprint[_tokenId] = _imprint;
+    emit TokenImprintUpdate(_tokenId, _imprint);
+  }
+ 
 
    /**
    * @dev Guarantees that the msg.sender is the NFT owner.
@@ -111,7 +169,7 @@ contract ArianeeSmartAsset is
    * @param _tokenId uint256 ID of the token to check
    */
   function isRequestable(uint256 _tokenId) public view returns (bool) {
-    return isTokenRequestable[_tokenId];
+    return tokenAccess[_tokenId][2] == true;
   }
 
   /**
@@ -124,19 +182,20 @@ contract ArianeeSmartAsset is
 
     if (_requestable) {
       encryptedTokenKey[_tokenId] = _encryptedTokenKey;
-      isTokenRequestable[_tokenId] = true;
+      tokenAccess[_tokenId][2]=true;
     } else {
-      isTokenRequestable[_tokenId] = false;    
+      tokenAccess[_tokenId][2]=false;
     }
 
     return true;
   }  
 
+
   /**
    * @dev Checks if token id is requestable and correct key is given
    * @param _tokenId uint256 ID of the token to validate
    */
-  modifier canRequest(uint256 _tokenId, string encryptedKey) {
+  modifier canRequest(uint256 _tokenId, bytes32 encryptedKey) {
     require(isTokenRequestable[_tokenId]&&keccak256(abi.encodePacked(encryptedKey)) == encryptedTokenKey[_tokenId]);
     _;
   }
@@ -149,17 +208,10 @@ contract ArianeeSmartAsset is
    * @param _to address to receive the ownership of the given token ID
    * @param _tokenId uint256 ID of the token to be transferred
   */
-  function requestFrom(address _to, uint256 _tokenId, string encryptedKey) public canRequest(_tokenId, encryptedKey) {
-
-    super._transfer( _to, _tokenId);
-    isTokenRequestable[_tokenId] = false;    
-
-
+  function requestFrom(address _to, uint256 _tokenId, bytes32 encryptedKey) public canRequest(_tokenId, encryptedKey) {
+    super._transferFrom(msg.sender, _to, _tokenId);
+    tokenAccess[_tokenId][2] = false;    
   }
-
-
-
-
 
   // service event 
 
@@ -182,9 +234,9 @@ contract ArianeeSmartAsset is
 
     if (_requestable) {
       encryptedTokenKeyService[_tokenId] = _encryptedTokenKey;
-      isTokenService[_tokenId] = true;
+      tokenAccess[_tokenId][1] = true;
     } else {
-      isTokenService[_tokenId] = false;    
+      tokenAccess[_tokenId][1] = false;
     }
 
     return true;
@@ -194,8 +246,8 @@ contract ArianeeSmartAsset is
    * @dev Checks if token id is service ok and correct key is given
    * @param _tokenId uint256 ID of the token to validate
    */
-  modifier canService(uint256 _tokenId, string encryptedKey) {
-    require(isTokenService[_tokenId]&&keccak256(abi.encodePacked(encryptedKey)) == encryptedTokenKeyService[_tokenId]);
+  modifier canService(uint256 _tokenId, bytes32 encryptedKey) {
+    require(tokenAccess[_tokenId][1]&&keccak256(abi.encodePacked(encryptedKey)) == encryptedTokenKeyService[_tokenId]);
     _;
   }
   
@@ -207,8 +259,7 @@ contract ArianeeSmartAsset is
    * @param _from address to send servuce
    * @param _tokenId uint256 ID of the token which receive service
   */
-  function serviceFrom(address _from, uint256 _tokenId, string encryptedKey, string serviceType, string description) public canService(_tokenId, encryptedKey) {
-
+  function serviceFrom(address _from, uint256 _tokenId, bytes32 encryptedKey,string memory serviceType, string memory description) public canService(_tokenId, encryptedKey) {
 
    emit Service(
       _from,
@@ -217,11 +268,8 @@ contract ArianeeSmartAsset is
       description
     );
 
-    isTokenService[_tokenId] = false;    
-
-
+    tokenAccess[_tokenId][1] = false;    
   }
-
 
 
 }

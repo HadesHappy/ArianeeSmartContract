@@ -1,49 +1,23 @@
-pragma solidity ^0.4.24;
+pragma solidity >=0.4.21 <0.6.0;
 
-import "@0xcert/ethereum-utils/contracts/ownership/Ownable.sol";
+contract Migrations {
+  address public owner;
+  uint public last_completed_migration;
 
-/**
- * @dev Truffle migrations manager.
- */
-contract Migrations is
-  Ownable
-{
-  uint public lastCompletedMigration;
-
-  /**
-   * @dev Contract constructor.
-   */
-  constructor()
-    public
-  {
+  constructor() public {
     owner = msg.sender;
   }
 
-  /**
-   * @dev Sets migration state.
-   * @param _completed Last completed migration number.
-   */
-  function setCompleted(
-    uint _completed
-  )
-    public
-    onlyOwner()
-  {
-    lastCompletedMigration = _completed;
+  modifier restricted() {
+    if (msg.sender == owner) _;
   }
 
-  /**
-   * @dev Permorms migration.
-   * @param _addr New migration address.
-   */
-  function upgrade(
-    address _addr
-  )
-    public
-    onlyOwner()
-  {
-    Migrations upgraded = Migrations(_addr);
-    upgraded.setCompleted(lastCompletedMigration);
+  function setCompleted(uint completed) public restricted {
+    last_completed_migration = completed;
   }
 
+  function upgrade(address new_address) public restricted {
+    Migrations upgraded = Migrations(new_address);
+    upgraded.setCompleted(last_completed_migration);
+  }
 }
