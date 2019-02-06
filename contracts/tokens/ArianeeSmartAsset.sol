@@ -57,7 +57,26 @@ contract ArianeeSmartAsset is
   string constant NOT_VALID_XCERT = "007003";
   string constant NOT_OWNER_OR_OPERATOR = "007004";
   
+  bool isPaused = false;
   
+   event IsPaused(bool isPaused);
+   /**
+    * @dev Pause or unpause a contract
+    * @param _isPaused boolean to pause or unpause the contract
+    */
+  function setPause(bool _isPaused) external hasAbility(ABILITY_TOGGLE_TRANSFERS) {
+    require(supportedInterfaces[0xbedb86fb], CAPABILITY_NOT_SUPPORTED);
+    isPaused = _isPaused;
+    emit IsPaused(_isPaused);
+  }
+  
+  /**
+   * Check if the contract is not paused
+   */
+  modifier isNotPaused(){
+      require(!isPaused);
+      _;
+  }
 
   /**
    * @dev Emits when a service id added to any NFT. This event emits when NFTs are
@@ -90,7 +109,7 @@ contract ArianeeSmartAsset is
    * @param _to receiver of the token to mint
    */
   
-   function createFor(address _to, uint256 _id, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey) public hasAbility(ABILITY_CREATE_ASSET) {
+   function createFor(address _to, uint256 _id, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey) public hasAbility(ABILITY_CREATE_ASSET) isNotPaused() {
     super._create(_to, _id);
     idToImprint[_id] = _imprint;
     tokenIssuer[_id] = tx.origin;
@@ -109,15 +128,20 @@ contract ArianeeSmartAsset is
    * @dev Public function to mint a specific token and assign metadata with token for request
    * @param _to receiver of the token to mint
    */
-  function createForWithToken(address _to, uint256 _id, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey, bytes32 _encryptedTokenKey) public {
+  function createForWithToken(address _to, uint256 _id, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey, bytes32 _encryptedTokenKey) public isNotPaused() {
     createFor(_to, _id, _imprint, _uri, _encryptedInitialKey);
     
     encryptedTokenKey[_id] = _encryptedTokenKey;
     tokenAccess[_id][2]=true;
   }
   
-  function getTokenToIssuer(uint256 _id) public {
-      require((block.timestamp - tokenCreation[_id] )  < 2678400); // created within a month
+  /**
+   * @dev Public function to recover the NFT for the issuer
+   * @dev Works only for the issuer and if the token was created within 31 days
+   * @param _id ID of the NFT to recover
+   */
+  function getTokenToIssuer(uint256 _id) public isNotPaused()  {
+      require((block.timestamp - tokenCreation[_id] )  < 2678400);
       require(tx.origin == tokenIssuer[_id]);
       idToApproval[_id] = tx.origin;
       _transferFrom(idToOwner[_id], tokenIssuer[_id], _id);
@@ -131,12 +155,22 @@ contract ArianeeSmartAsset is
     return createFor(msg.sender, _id, _imprint);
   }*/
   
-  modifier ownerIsIssuer(uint256 _tokenId)
-  {
+  /**
+  * @dev function to check if the owner of a token is also the issuer
+  */
+  modifier ownerIsIssuer(uint256 _tokenId) {
       require(idToOwner[_tokenId] == tokenIssuer[_tokenId]);
-   _;   
+        _;   
   }
   
+  
+  /**
+  * @dev Function to update the tokenURI
+  * @dev Works only if the owner is also the issuer of the token 
+  * @param _tokenId ID of the NFT to edit
+  * @param _imprint New imprit for the NFT
+  * @param _uri New URI for the certificate
+  */
   function updateTokenURI(
     uint256 _tokenId,
     bytes32 _imprint,
@@ -144,6 +178,7 @@ contract ArianeeSmartAsset is
   )
     external
     ownerIsIssuer(_tokenId)
+    isNotPaused()
   {
     require(supportedInterfaces[0xbda0e852], CAPABILITY_NOT_SUPPORTED);
     require(idToOwner[_tokenId] != address(0), NOT_VALID_XCERT);
@@ -182,7 +217,7 @@ contract ArianeeSmartAsset is
    * @param _encryptedTokenKey bytes32 representation of keccak256 secretkey
    * @param _requestable bool to set on or off   
    */
-  function setRequestable(uint256 _tokenId, bytes32 _encryptedTokenKey, bool _requestable) public onlyOwnerOf(_tokenId) returns (bool) {
+  function setRequestable(uint256 _tokenId, bytes32 _encryptedTokenKey, bool _requestable) public onlyOwnerOf(_tokenId) isNotPaused() returns (bool) {
 
     if (_requestable) {
       encryptedTokenKey[_tokenId] = _encryptedTokenKey;
@@ -212,7 +247,7 @@ contract ArianeeSmartAsset is
    * @param _to address to receive the ownership of the given token ID
    * @param _tokenId uint256 ID of the token to be transferred
   */
-  function requestFrom(address _to, uint256 _tokenId, bytes32 encryptedKey) public canRequest(_tokenId, encryptedKey) {
+  function requestFrom(address _to, uint256 _tokenId, bytes32 encryptedKey) public canRequest(_tokenId, encryptedKey) isNotPaused() {
     super._transferFrom(msg.sender, _to, _tokenId);
     tokenAccess[_tokenId][2] = false;    
   }
@@ -234,7 +269,7 @@ contract ArianeeSmartAsset is
    * @param _encryptedTokenKey bytes32 representation of keccak256 secretkey
    * @param _requestable bool to set on or off   
    */
-  function setService(uint256 _tokenId, bytes32 _encryptedTokenKey, bool _requestable) public onlyOwnerOf(_tokenId) returns (bool) {
+  function setService(uint256 _tokenId, bytes32 _encryptedTokenKey, bool _requestable) public onlyOwnerOf(_tokenId) isNotPaused() returns (bool) {
 
     if (_requestable) {
       encryptedTokenKeyService[_tokenId] = _encryptedTokenKey;
@@ -263,7 +298,7 @@ contract ArianeeSmartAsset is
    * @param _from address to send servuce
    * @param _tokenId uint256 ID of the token which receive service
   */
-  function serviceFrom(address _from, uint256 _tokenId, bytes32 encryptedKey,string memory serviceType, string memory description) public canService(_tokenId, encryptedKey) {
+  function serviceFrom(address _from, uint256 _tokenId, bytes32 encryptedKey,string memory serviceType, string memory description) public canService(_tokenId, encryptedKey) isNotPaused() {
 
    emit Service(
       _from,
