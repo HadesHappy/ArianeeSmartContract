@@ -214,58 +214,46 @@ contract ArianeeSmartAsset is
    * @param _to address to receive the ownership of the given token ID
    * @param _tokenId uint256 ID of the token to be transferred
   */
-  function requestFrom(address _to, uint256 _tokenId, bytes32 encryptedKey) public canRequest(_tokenId, encryptedKey) isNotPaused() {
-    super._transferFrom(msg.sender, _to, _tokenId);
-    tokenAccess[_tokenId][2] = false;    
+  function requestFrom(address _to, uint256 _tokenId, string memory encryptedKey) public canRequest(_tokenId, encryptedKey) whenNotPaused() {
+    tokenAccess[_tokenId][2] = 0x00;
+    super._transferFrom(idToOwner[_tokenId], _to, _tokenId);
   }
-
-  // service event 
-
-
+  
+  
+  /**
+   * @dev Public function to check if a token is view ok
+   * @param _tokenId uint256 ID of the token to check
+   */
+  function isView(uint256 _tokenId) public view returns (bool) {
+        return tokenAccess[_tokenId][0] != 0x00;
+  }
+  
   /**
    * @dev Public function to check if a token is service ok
    * @param _tokenId uint256 ID of the token to check
    */
   function isService(uint256 _tokenId) public view returns (bool) {
-    return isTokenService[_tokenId];
+    return tokenAccess[_tokenId][1] != 0x00;
   }
-
-  /**
-   * @dev Public function to set a token service (or not)
-   * @param _tokenId uint256 ID of the token to check
-   * @param _encryptedTokenKey bytes32 representation of keccak256 secretkey
-   * @param _requestable bool to set on or off   
-   */
-  function setService(uint256 _tokenId, bytes32 _encryptedTokenKey, bool _requestable) public onlyOwnerOf(_tokenId) isNotPaused() returns (bool) {
-
-    if (_requestable) {
-      encryptedTokenKeyService[_tokenId] = _encryptedTokenKey;
-      tokenAccess[_tokenId][1] = true;
-    } else {
-      tokenAccess[_tokenId][1] = false;
-    }
-
-    return true;
-  }  
-
+  
+  
   /**
    * @dev Checks if token id is service ok and correct key is given
    * @param _tokenId uint256 ID of the token to validate
    */
-  modifier canService(uint256 _tokenId, bytes32 encryptedKey) {
-    require(tokenAccess[_tokenId][1]&&keccak256(abi.encodePacked(encryptedKey)) == encryptedTokenKeyService[_tokenId]);
+  modifier canService(uint256 _tokenId, string memory encryptedKey) {
+    require(tokenAccess[_tokenId][1] != 0x00 && keccak256(abi.encodePacked(encryptedKey)) == tokenAccess[_tokenId][1]);
     _;
   }
   
-
-  /** TODO
+    /** TODO
    * @dev Transfers the ownership of a given token ID to another address
    * @dev Usage of this method is discouraged, use `safeTransferFrom` whenever possible
    * @dev Requires the msg sender to have the correct tokenKey and token id is requestable
    * @param _from address to send servuce
    * @param _tokenId uint256 ID of the token which receive service
   */
-  function serviceFrom(address _from, uint256 _tokenId, bytes32 encryptedKey,string memory serviceType, string memory description) public canService(_tokenId, encryptedKey) isNotPaused() {
+  function serviceFrom(address _from, uint256 _tokenId, string memory encryptedKey,string memory serviceType, string memory description) public canService(_tokenId, encryptedKey) whenNotPaused() {
 
    emit Service(
       _from,
