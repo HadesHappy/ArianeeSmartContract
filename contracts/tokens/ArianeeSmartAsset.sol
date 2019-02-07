@@ -161,39 +161,32 @@ contract ArianeeSmartAsset is
   * @dev Function to update the tokenURI
   * @dev Works only if the owner is also the issuer of the token 
   * @param _tokenId ID of the NFT to edit
-  * @param _imprint New imprit for the NFT
   * @param _uri New URI for the certificate
   */
   function updateTokenURI(
     uint256 _tokenId,
-    bytes32 _imprint,
     string calldata _uri
   )
     external
-    ownerIsIssuer(_tokenId)
-    isNotPaused()
+    isIssuer(_tokenId)
+    whenNotPaused()
   {
-    require(supportedInterfaces[0xbda0e852], CAPABILITY_NOT_SUPPORTED);
     require(idToOwner[_tokenId] != address(0), NOT_VALID_XCERT);
     idToUri[_tokenId] = _uri;
-    idToImprint[_tokenId] = _imprint;
-    emit TokenImprintUpdate(_tokenId, _imprint);
   }
  
-
-   /**
-   * @dev Guarantees that the msg.sender is the NFT owner.
-   * @param _tokenId ID of the NFT to transfer.
-   */
-  modifier onlyOwnerOf(
-    uint256 _tokenId
-  ) {
-    address tokenOwner = idToOwner[_tokenId];
-    require(
-      tokenOwner == msg.sender
-    );
-
-    _;
+ 
+ /**
+  * 
+  */
+  function addTokenKey(uint256 _tokenId, bytes32 _encryptedTokenKey, bool _enable, uint8 _tokenType) public canOperate(_tokenId) whenNotPaused() returns (bool) {
+      if(_enable){
+          tokenAccess[_tokenId][_tokenType] = _encryptedTokenKey;
+      }
+      else{
+          tokenAccess[_tokenId][_tokenType] = 0x00;
+      }
+      return true;
   }
 
   /**
