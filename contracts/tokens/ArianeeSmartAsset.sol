@@ -21,9 +21,9 @@ contract ArianeeSmartAsset is
   mapping (uint256 => address) public tokenIssuer;
   
   // Mapping from token id to URI
-  mapping(uint256 => string) idToUri;
-  
-  mapping (uint256=> mapping(uint256 => bool)) tokenAccess; // 0=view;1=service;2=transfert
+  mapping(uint256 => string) public idToUri;
+
+  mapping (uint256=> mapping(uint8 => bytes32)) tokenAccess; // 0=view;1=service;2=transfert;
   
   //  Mapping from token id to TokenImprintUpdate
   mapping (uint256 => bytes32) internal idToImprint;
@@ -282,6 +282,5 @@ contract ArianeeSmartAsset is
       require(!tokenLost[_tokenId]);
       _;
   }
-
 
 }
