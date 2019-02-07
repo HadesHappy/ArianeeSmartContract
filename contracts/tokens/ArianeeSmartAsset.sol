@@ -3,13 +3,15 @@ pragma solidity 0.5.1;
 
 import "@0xcert/ethereum-utils-contracts/src/contracts/math/safe-math.sol";
 import "@0xcert/ethereum-utils-contracts/src/contracts/permission/abilitable.sol";
+import "@0xcert/ethereum-utils-contracts/src/contracts/permission/ownable.sol";
 import "@0xcert/ethereum-utils-contracts/src/contracts/utils/address-utils.sol";
 
 import "@0xcert/ethereum-erc721-contracts/src/contracts/nf-token-metadata-enumerable.sol";
  
 contract ArianeeSmartAsset is
   NFTokenMetadataEnumerable,
-  Abilitable
+  Abilitable,
+  Ownable
 {
 
   // Mapping from token id to bool as for request as transfer knowing the tokenkey
@@ -64,8 +66,7 @@ contract ArianeeSmartAsset is
     * @dev Pause or unpause a contract
     * @param _isPaused boolean to pause or unpause the contract
     */
-  function setPause(bool _isPaused) external hasAbility(ABILITY_TOGGLE_TRANSFERS) {
-    require(supportedInterfaces[0xbedb86fb], CAPABILITY_NOT_SUPPORTED);
+  function setPause(bool _isPaused) external onlyOwner() {
     isPaused = _isPaused;
     emit IsPaused(_isPaused);
   }
