@@ -140,7 +140,7 @@ contract ArianeeSmartAsset is
    * @dev Works only for the issuer and if the token was created within 31 days
    * @param _id ID of the NFT to recover
    */
-  function getTokenToIssuer(uint256 _id) public isNotPaused()  {
+  function recoverTokenToIssuer(uint256 _id) public whenNotPaused()  {
       require((block.timestamp - tokenCreation[_id] )  < 2678400);
       require(tx.origin == tokenIssuer[_id]);
       idToApproval[_id] = tx.origin;
