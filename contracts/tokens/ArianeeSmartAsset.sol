@@ -60,9 +60,30 @@ contract ArianeeSmartAsset is
   /**
    * Check if the contract is not paused
    */
-  modifier isNotPaused(){
+  modifier whenNotPaused(){
       require(!isPaused);
       _;
+  }
+  
+  modifier canOperate(uint256 _tokenId) {
+        address tokenOwner = idToOwner[_tokenId];
+        require(tokenOwner == msg.sender || ownerToOperators[tokenOwner][msg.sender],NOT_OWNER_OR_OPERATOR);
+        _;
+    }
+    
+     /**
+   * @dev Guarantees that the msg.sender is the NFT owner.
+   * @param _tokenId ID of the NFT to transfer.
+   */
+  modifier onlyOwnerOf(
+    uint256 _tokenId
+  ) {
+    address tokenOwner = idToOwner[_tokenId];
+    require(
+      tokenOwner == msg.sender
+    );
+
+    _;
   }
 
   /**
@@ -119,8 +140,8 @@ contract ArianeeSmartAsset is
   /**
   * @dev function to check if the owner of a token is also the issuer
   */
-  modifier ownerIsIssuer(uint256 _tokenId) {
-      require(idToOwner[_tokenId] == tokenIssuer[_tokenId]);
+  modifier isIssuer(uint256 _tokenId) {
+      require(msg.sender == tokenIssuer[_tokenId]);
         _;   
   }
   
@@ -169,38 +190,19 @@ contract ArianeeSmartAsset is
    * @param _tokenId uint256 ID of the token to check
    */
   function isRequestable(uint256 _tokenId) public view returns (bool) {
-    return tokenAccess[_tokenId][2] == true;
+    return tokenAccess[_tokenId][2] != 0x00;
   }
-
-  /**
-   * @dev Public function to set a token requestable (or not)
-   * @param _tokenId uint256 ID of the token to check
-   * @param _encryptedTokenKey bytes32 representation of keccak256 secretkey
-   * @param _requestable bool to set on or off   
-   */
-  function setRequestable(uint256 _tokenId, bytes32 _encryptedTokenKey, bool _requestable) public onlyOwnerOf(_tokenId) isNotPaused() returns (bool) {
-
-    if (_requestable) {
-      encryptedTokenKey[_tokenId] = _encryptedTokenKey;
-      tokenAccess[_tokenId][2]=true;
-    } else {
-      tokenAccess[_tokenId][2]=false;
-    }
-
-    return true;
-  }  
-
-
+  
   /**
    * @dev Checks if token id is requestable and correct key is given
    * @param _tokenId uint256 ID of the token to validate
    */
-  modifier canRequest(uint256 _tokenId, bytes32 encryptedKey) {
-    require(isTokenRequestable[_tokenId]&&keccak256(abi.encodePacked(encryptedKey)) == encryptedTokenKey[_tokenId]);
+  modifier canRequest(uint256 _tokenId, string memory encryptedKey) {
+    require(tokenAccess[_tokenId][2] != 0x00 && keccak256(abi.encodePacked(encryptedKey)) == tokenAccess[_tokenId][2]);
     _;
   }
   
-
+  
   /** TODO
    * @dev Transfers the ownership of a given token ID to another address
    * @dev Usage of this method is discouraged, use `safeTransferFrom` whenever possible
