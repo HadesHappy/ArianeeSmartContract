@@ -13,18 +13,6 @@ contract ArianeeSmartAsset is
   Abilitable,
   Ownable
 {
-
-  // Mapping from token id to bool as for request as transfer knowing the tokenkey
-  mapping (uint256 => bool) public isTokenRequestable;
-
-  // Mapping from token id to TokenKey (if requestable)
-  mapping (uint256 => bytes32) public encryptedTokenKey;  
-
-  // Mapping from token id to bool as for request for service knowing the tokenkey
-  mapping (uint256 => bool) public isTokenService;  
-
-  // Mapping from token id to TokenKey (if service)
-  mapping (uint256 => bytes32) public encryptedTokenKeyService;
   
   // Mapping from token id to initial key
   mapping (uint256 => bytes32) public encryptedInitialKey;
@@ -46,10 +34,8 @@ contract ArianeeSmartAsset is
   // mapping from token id to lost flag
   mapping (uint256 => bool) public tokenLost;
   
+  
   uint8 constant ABILITY_CREATE_ASSET = 1;
-  uint8 constant ABILITY_REVOKE_ASSET = 2;
-  uint8 constant ABILITY_TOGGLE_TRANSFERS = 3;
-  uint8 constant ABILITY_UPDATE_ASSET_IMPRINT = 4;
 
   /**
    * @dev Error constants.
@@ -89,12 +75,6 @@ contract ArianeeSmartAsset is
     string serviceType,
     string description
   );
-  
-  event TokenImprintUpdate(
-    uint256 indexed _tokenId,
-    bytes32 _imprint
-  );
-
 
   constructor(
   )
@@ -107,7 +87,6 @@ contract ArianeeSmartAsset is
 
   /**
    * @dev Public function to mint a specific token and assign metadata
-   * @param _to receiver of the token to mint
    */
   
    function createFor(address _to, uint256 _id, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey) public hasAbility(ABILITY_CREATE_ASSET) isNotPaused() {
@@ -124,18 +103,6 @@ contract ArianeeSmartAsset is
     tokenAccess[_id][2]=false;
   }
 
-
-  /**
-   * @dev Public function to mint a specific token and assign metadata with token for request
-   * @param _to receiver of the token to mint
-   */
-  function createForWithToken(address _to, uint256 _id, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey, bytes32 _encryptedTokenKey) public isNotPaused() {
-    createFor(_to, _id, _imprint, _uri, _encryptedInitialKey);
-    
-    encryptedTokenKey[_id] = _encryptedTokenKey;
-    tokenAccess[_id][2]=true;
-  }
-  
   /**
    * @dev Public function to recover the NFT for the issuer
    * @dev Works only for the issuer and if the token was created within 31 days
@@ -148,13 +115,6 @@ contract ArianeeSmartAsset is
       _transferFrom(idToOwner[_id], tokenIssuer[_id], _id);
   }
 
-  /**
-   * @dev Public function to mint a specific token for sender and assign metadata
-   * OLD CODE
-   */
-  /*function create (uint256 _id, bytes32 _imprint) public {
-    return createFor(msg.sender, _id, _imprint);
-  }*/
   
   /**
   * @dev function to check if the owner of a token is also the issuer
