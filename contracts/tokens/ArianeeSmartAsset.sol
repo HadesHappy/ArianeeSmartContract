@@ -43,6 +43,7 @@ contract ArianeeSmartAsset is
   string constant CAPABILITY_NOT_SUPPORTED = "007001";
   string constant TRANSFERS_DISABLED = "007002";
   string constant NOT_VALID_XCERT = "007003";
+  string constant NFT_ALREADY_SET = "007006";
   string constant NOT_OWNER_OR_OPERATOR = "007004";
   
   bool isPaused = false;
@@ -120,6 +121,7 @@ contract ArianeeSmartAsset is
    * @dev Public function to mint a specific token and assign metadata
    */
    function createFor(uint256 _id, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey, bool _initialKeyIsRecoveryKey) public whenNotPaused() canOperate(_id) {
+    require(!(tokenCreation[_id] > 0), NFT_ALREADY_SET);
     
     tokenIssuer[_id] = idToApproval[_id];
     encryptedInitialKey[_id] = _encryptedInitialKey;
