@@ -262,15 +262,16 @@ contract ArianeeSmartAsset is
       description
     );
 
-    tokenAccess[_tokenId][1] = false;    
+    tokenAccess[_tokenId][1] = 0x00;
   }
   
+  // lost functions
   /**
    * @dev Set a NFT as lost and block all transation
    * @param _tokenId uint256 ID of the token to set lost
    * @param _isLost boolean to set the token lost or not
   */
-  function setTokenLost(uint256 _tokenId, bool _isLost) public isNotPaused() onlyOwnerOf(_tokenId){
+  function setTokenLost(uint256 _tokenId, bool _isLost) public whenNotPaused() canOperate(_tokenId){
       tokenLost[_tokenId] = _isLost;
   }
   
