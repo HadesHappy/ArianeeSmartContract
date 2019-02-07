@@ -104,24 +104,35 @@ contract ArianeeSmartAsset is
     nftName = "ArianeeSmartAsset";
     nftSymbol = "AriaSA";
   }
+    
+    function reserveTokens(uint256 _first, uint256 _last) public {
+        for(uint i = _first; i<=_last; i++){
+            reserveToken(i);
+        }
+    }
 
-
+    function reserveToken(uint256 _id) public hasAbility(ABILITY_CREATE_ASSET) whenNotPaused() returns (bool){
+        super._create(tx.origin, _id);
+        return true;
+    }
+    
   /**
    * @dev Public function to mint a specific token and assign metadata
    */
-  
-   function createFor(address _to, uint256 _id, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey) public hasAbility(ABILITY_CREATE_ASSET) isNotPaused() {
-    super._create(_to, _id);
-    idToImprint[_id] = _imprint;
-    tokenIssuer[_id] = tx.origin;
+   function createFor(uint256 _id, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey, bool _initialKeyIsRecoveryKey) public whenNotPaused() canOperate(_id) {
+    
+    tokenIssuer[_id] = idToApproval[_id];
     encryptedInitialKey[_id] = _encryptedInitialKey;
-    idToUri[_id]=_uri;
     tokenCreation[_id] = block.timestamp;
+    idToImprint[_id] = _imprint;
+    
+    idToUri[_id]=_uri;
+    
     tokenLost[_id] = false;
     
-    tokenAccess[_id][0]=false;
-    tokenAccess[_id][1]=false;
-    tokenAccess[_id][2]=false;
+    if(_initialKeyIsRecoveryKey){
+        tokenAccess[_id][2]= _encryptedInitialKey; // set transfer key 
+    }
   }
 
   /**
