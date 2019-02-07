@@ -65,7 +65,10 @@ contract ArianeeSmartAsset is
       require(!isPaused);
       _;
   }
-  
+  /**
+   * @dev Check if the msg.sender can operate the tokenOwner
+   * @param _tokenId uint256 ID of the token to test
+   */
   modifier canOperate(uint256 _tokenId) {
         address tokenOwner = idToOwner[_tokenId];
         require(tokenOwner == msg.sender || ownerToOperators[tokenOwner][msg.sender],NOT_OWNER_OR_OPERATOR);
@@ -74,7 +77,7 @@ contract ArianeeSmartAsset is
     
      /**
    * @dev Guarantees that the msg.sender is the NFT owner.
-   * @param _tokenId ID of the NFT to transfer.
+   * @param _tokenId ID of the NFT to test.
    */
   modifier onlyOwnerOf(
     uint256 _tokenId
@@ -106,19 +109,34 @@ contract ArianeeSmartAsset is
     nftSymbol = "AriaSA";
   }
     
+    
+    /**
+     * @dev batch function for reserveToken
+     * @param _first uint256 first ID to reserve
+     * @param _last uint256 last ID to reserve
+     */
     function reserveTokens(uint256 _first, uint256 _last) public {
         for(uint i = _first; i<=_last; i++){
             reserveToken(i);
         }
     }
 
+    /**
+     * @dev resever a NFT at the given id can only be call by abilited address
+     * @param _id uint256 ID to reserve 
+     */
     function reserveToken(uint256 _id) public hasAbility(ABILITY_CREATE_ASSET) whenNotPaused() returns (bool){
         super._create(tx.origin, _id);
         return true;
     }
     
   /**
-   * @dev Public function to mint a specific token and assign metadata
+   * @dev Public function specify information on a reserved token and assign metadata
+   * @param _id uint256 ID of the token to modify
+   * @param _imprint bytes32 proof of the certification
+   * @param _uri string URI of the JSON certification
+   * @param _encryptedInitialKey bytes32 initial key
+   * @param _initialKeyIsRecoveryKey bool set is initial key is also recovery key
    */
    function createFor(uint256 _id, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey, bool _initialKeyIsRecoveryKey) public whenNotPaused() canOperate(_id) {
     require(!(tokenCreation[_id] > 0), NFT_ALREADY_SET);
@@ -152,6 +170,7 @@ contract ArianeeSmartAsset is
   
   /**
   * @dev function to check if the owner of a token is also the issuer
+  * @param _tokenId ID of the NFT to test.
   */
   modifier isIssuer(uint256 _tokenId) {
       require(msg.sender == tokenIssuer[_tokenId]);
@@ -179,7 +198,10 @@ contract ArianeeSmartAsset is
  
  
  /**
-  * 
+  * @dev add an encrypetd key to a token
+  * @param _encryptedTokenKey bytes32 encrypted key to add
+  * @param _enable boolean to enable or disable key
+  * @param _tokenType uint8 type of token (0=view, 1=service, 2=transfer)
   */
   function addTokenKey(uint256 _tokenId, bytes32 _encryptedTokenKey, bool _enable, uint8 _tokenType) public canOperate(_tokenId) whenNotPaused() returns (bool) {
       if(_enable){
@@ -202,21 +224,23 @@ contract ArianeeSmartAsset is
   /**
    * @dev Checks if token id is requestable and correct key is given
    * @param _tokenId uint256 ID of the token to validate
+   * @param _tokenKey string to encode to check token
    */
-  modifier canRequest(uint256 _tokenId, string memory encryptedKey) {
-    require(tokenAccess[_tokenId][2] != 0x00 && keccak256(abi.encodePacked(encryptedKey)) == tokenAccess[_tokenId][2]);
+  modifier canRequest(uint256 _tokenId, string memory _tokenKey) {
+    require(tokenAccess[_tokenId][2] != 0x00 && keccak256(abi.encodePacked(_tokenKey)) == tokenAccess[_tokenId][2]);
     _;
   }
   
   
-  /** TODO
+  /** 
    * @dev Transfers the ownership of a given token ID to another address
    * @dev Usage of this method is discouraged, use `safeTransferFrom` whenever possible
    * @dev Requires the msg sender to have the correct tokenKey and token id is requestable
    * @param _to address to receive the ownership of the given token ID
    * @param _tokenId uint256 ID of the token to be transferred
+   * @param _tokenKey string to encode to check tokenKey
   */
-  function requestFrom(address _to, uint256 _tokenId, string memory encryptedKey) public canRequest(_tokenId, encryptedKey) whenNotPaused() {
+  function requestFrom(address _to, uint256 _tokenId, string memory _tokenKey) public canRequest(_tokenId, _tokenKey) whenNotPaused() {
     tokenAccess[_tokenId][2] = 0x00;
     super._transferFrom(idToOwner[_tokenId], _to, _tokenId);
   }
@@ -249,19 +273,20 @@ contract ArianeeSmartAsset is
   }
   
     /** TODO
-   * @dev Transfers the ownership of a given token ID to another address
-   * @dev Usage of this method is discouraged, use `safeTransferFrom` whenever possible
-   * @dev Requires the msg sender to have the correct tokenKey and token id is requestable
+   * @dev 
    * @param _from address to send servuce
    * @param _tokenId uint256 ID of the token which receive service
+   * @param _tokenKey string of the service encrypted key
+   * @param _serviceType string
+   * @param _description string description of the service
   */
-  function serviceFrom(address _from, uint256 _tokenId, string memory encryptedKey,string memory serviceType, string memory description) public canService(_tokenId, encryptedKey) whenNotPaused() {
+  function serviceFrom(address _from, uint256 _tokenId, string memory _tokenKey, string memory _serviceType, string memory _description) public canService(_tokenId, _tokenKey) whenNotPaused() {
 
    emit Service(
       _from,
       _tokenId,
-      serviceType,
-      description
+      _serviceType,
+      _description
     );
 
     tokenAccess[_tokenId][1] = 0x00;
@@ -279,6 +304,7 @@ contract ArianeeSmartAsset is
   
   /**
    * @dev Check if a NFT is not lost
+   * @param _tokenId uint256 ID of the token to test
   */
   modifier isTokenNotLost(uint256 _tokenId) {
       require(!tokenLost[_tokenId]);
