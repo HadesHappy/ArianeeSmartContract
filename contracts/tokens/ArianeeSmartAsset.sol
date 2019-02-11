@@ -70,18 +70,6 @@ contract ArianeeSmartAsset is
    * @param _tokenId uint256 ID of the token to test
    */
   modifier canOperate(uint256 _tokenId) {
-        address tokenOwner = idToOwner[_tokenId];
-        require(tokenOwner == msg.sender || ownerToOperators[tokenOwner][msg.sender],NOT_OWNER_OR_OPERATOR);
-        _;
-    }
-    
-     /**
-   * @dev Guarantees that the msg.sender is the NFT owner.
-   * @param _tokenId ID of the NFT to test.
-   */
-  modifier onlyOwnerOf(
-    uint256 _tokenId
-  ) {
     address tokenOwner = idToOwner[_tokenId];
     require(
       tokenOwner == msg.sender
