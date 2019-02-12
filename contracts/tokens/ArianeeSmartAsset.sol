@@ -65,7 +65,7 @@ Ownable
    * @dev Modifier Check if the contract is not paused
    */
   modifier whenNotPaused(){
-    require(!isPaused);
+    require(!isPaused, "007006");
     _;
   }
 
