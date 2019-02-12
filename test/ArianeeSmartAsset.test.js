@@ -1,0 +1,78 @@
+const ArianeeSmartAsset = artifacts.require('ArianeeSmartAsset');
+const catchRevert = require('./helpers/exceptions.js').catchRevert;
+
+contract('ArianeeSmartAsset', (accounts) => {
+  beforeEach(async () => {
+    smartAsset = await ArianeeSmartAsset.new();
+  });
+
+
+  it('shouldn\'t be able to reserve token without abilities', async()=>{
+    await catchRevert(smartAsset.reserveToken(1,{from: accounts[0]}));
+    const count = await smartAsset.balanceOf(accounts[0]);
+    assert.equal(count.toNumber(), 0);
+  });
+
+  it('should returns correct balanceOf after createFor', async () => {
+    await smartAsset.assignAbilities(accounts[0], [1]);
+    await smartAsset.reserveToken(1,{from: accounts[0]});
+    const count = await smartAsset.balanceOf(accounts[0]);
+    assert.equal(count.toNumber(), 1);
+  });
+
+  it('should be able to hydrate NFT after reservation', async()=>{
+    await smartAsset.assignAbilities(accounts[0], [1]);
+    await smartAsset.reserveToken(1,{from: accounts[0]});
+    await smartAsset.hydrateToken(1, web3.utils.keccak256('imprint'), 'http://arianee.org', web3.utils.keccak256('encryptedInitialKey'), false);
+
+    const tokenIssuer = await smartAsset.tokenIssuer(1);
+    const encryptedInitialKey = await smartAsset.encryptedInitialKey(1);
+    const tokenCreation = await smartAsset.tokenCreation(1);
+    const idToImprint = await smartAsset.idToImprint(1);
+    const idToUri = await smartAsset.idToUri(1);
+    const tokenLost = await smartAsset.tokenLost(1);
+    const tokenAccessRecovery = await smartAsset.tokenAccess(1,2);
+
+    assert.equal(tokenIssuer, accounts[0], 'The issuers set in the NFT is not the issuer');
+    assert.equal(encryptedInitialKey, web3.utils.keccak256('encryptedInitialKey'), 'The encryptedInitialKey, is not set correctly');
+    assert.equal(tokenCreation, Math.floor(Date.now()/1000), 'The tokenCreation is not set correctly');
+    assert.equal(idToImprint, web3.utils.keccak256('imprint'), 'The imprint is not set correctly');
+    assert.equal(idToUri, 'http://arianee.org', 'The URI is not set correctly');
+    assert.equal(tokenLost, false, 'The token Lost should be false by default');
+    assert.equal(tokenAccessRecovery, false, 'The access Recovery should be false in this configuration');
+  });
+
+  it('shouldn\'t be able to hydrate a NFT without reserve it before', async()=>{
+    await smartAsset.assignAbilities(accounts[0], [1]);
+    await catchRevert(smartAsset.hydrateToken(1, web3.utils.keccak256('imprint'), 'http://arianee.org', web3.utils.keccak256('encryptedInitialKey'), false));
+  });
+
+  it('shouldn\'t be able to reserve when the contract is paused', async()=>{
+    await smartAsset.assignAbilities(accounts[0], [1]);
+    await smartAsset.setPause(true);
+    await catchRevert(smartAsset.reserveToken(1,{from: accounts[0]}));
+  });
+
+  it('a new token with encrypted Key should be requestable', async()=>{
+    await smartAsset.assignAbilities(accounts[0], [1]);
+    await smartAsset.reserveToken(1,{from: accounts[0]});
+    await smartAsset.hydrateToken(1, web3.utils.keccak256('imprint'), 'http://arianee.org', web3.utils.keccak256('encryptedInitialKey'), true);
+
+    const isRequestable = await smartAsset.isRequestable(1);
+    assert.equal(isRequestable, true);
+  });
+
+  it('a new token create as requestable should be transferable', async()=>{
+    await smartAsset.assignAbilities(accounts[0], [1]);
+    await smartAsset.reserveToken(1,{from: accounts[0]});
+    await smartAsset.hydrateToken(1, web3.utils.keccak256('imprint'), 'http://arianee.org', web3.utils.keccak256('encryptedInitialKey'), true);
+
+    await smartAsset.requestFrom(accounts[1], 1, 'encryptedInitialKey', {from:accounts[1]});
+    const balanceAccount0 = await smartAsset.balanceOf(accounts[0]);
+    const balanceAccount1 = await smartAsset.balanceOf(accounts[1]);
+    assert.equal(balanceAccount0, 0);
+    assert.equal(balanceAccount1, 1);
+  });
+
+  
+});
