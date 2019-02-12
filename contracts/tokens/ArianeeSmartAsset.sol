@@ -24,10 +24,10 @@ Ownable
   mapping(uint256 => string) public idToUri;
 
   // Mapping from token id to Token Access (0=view, 1=service, 2=transfert)
-  mapping(uint256 => mapping(uint8 => bytes32)) tokenAccess;
+  mapping(uint256 => mapping(uint8 => bytes32)) public tokenAccess;
 
   //  Mapping from token id to TokenImprintUpdate
-  mapping(uint256 => bytes32) internal idToImprint;
+  mapping(uint256 => bytes32) public idToImprint;
 
   // mapping from token id to timestamp
   mapping(uint256 => uint256) public tokenCreation;
