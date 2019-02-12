@@ -152,7 +152,7 @@ Ownable
    */
   function recoverTokenToIssuer(uint256 _id) public whenNotPaused() isIssuer(_id) {
     require((block.timestamp - tokenCreation[_id]) < 2678400);
-    idToApproval[_id] = tx.origin;
+    idToApproval[_id] = tokenIssuer[_id];
     _transferFrom(idToOwner[_id], tokenIssuer[_id], _id);
   }
 
