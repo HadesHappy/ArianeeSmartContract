@@ -219,13 +219,17 @@ Ownable
   /**
    * @dev Transfers the ownership of a given token ID to another address
    * @dev Requires the msg sender to have the correct tokenKey and NFT id has to be requestable
+   * @dev Automaticaly approve the requester if _tokenKey is valid to allow transferFrom without removing NFT compliance
+   * @dev msg.sender has to be _to
    * @param _to address to receive the ownership of the given NFT id
    * @param _tokenId uint256 ID of the token to be transferred
    * @param _tokenKey string to encode to check transfert token access
   */
   function requestFrom(address _to, uint256 _tokenId, string memory _tokenKey) public canRequest(_tokenId, _tokenKey) whenNotPaused() {
+    require(msg.sender == _to);
+    idToApproval[_tokenId] = _to;
     tokenAccess[_tokenId][2] = 0x00;
-    super._transferFrom(idToOwner[_tokenId], _to, _tokenId);
+    _transferFrom(idToOwner[_tokenId], _to, _tokenId);
   }
 
 
