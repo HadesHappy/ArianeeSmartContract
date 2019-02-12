@@ -163,7 +163,7 @@ contract('ArianeeSmartAsset', (accounts) => {
     await smartAsset.serviceFrom(accounts[3],1,'serviceKey', 'serviceType', 'service Description');
   });
 
-  it('shouldn\'t beable to service after service is done', async()=>{
+  it('shouldn\'t be able to service after service is done', async()=>{
     await smartAsset.assignAbilities(accounts[0], [1]);
     await smartAsset.reserveToken(1,{from: accounts[0]});
     await smartAsset.hydrateToken(1, web3.utils.keccak256('imprint'), 'http://arianee.org', web3.utils.keccak256('encryptedInitialKey'), false);
