@@ -14,7 +14,7 @@ Abilitable,
 Ownable
 {
 
-  // Mapping from token id to initial key
+  // Mapping from token id to encrypted initial key
   mapping(uint256 => bytes32) public encryptedInitialKey;
 
   // Mapping from token id to issuer
@@ -35,6 +35,9 @@ Ownable
   // mapping from token id to lost flag
   mapping(uint256 => bool) public tokenLost;
 
+  // mapping from token id to lost flag
+  mapping(uint256 => uint256) public tokenRecoveryTimestamp;
+
 
   uint8 constant ABILITY_CREATE_ASSET = 1;
 
@@ -52,7 +55,7 @@ Ownable
   event IsPaused(bool isPaused);
 
   /**
-   * @dev Pause or unpause a contract
+   * @dev External function Pause or unpause a contract
    * @dev Can only be called by owner of the contract
    * @param _isPaused boolean to pause or unpause the contract
    */
@@ -70,25 +73,14 @@ Ownable
   }
 
   /**
-   * @dev Modifier Check if the msg.sender can operate the token
-   * @param _tokenId uint256 ID of the token to test
+   * @dev Modifier Check if the msg.sender can operate the NFT
+   * @param _tokenId uint256 ID of the NFT to test
    */
   modifier canOperate(uint256 _tokenId) {
     address tokenOwner = idToOwner[_tokenId];
     require(tokenOwner == msg.sender || ownerToOperators[tokenOwner][msg.sender], NOT_OWNER_OR_OPERATOR);
     _;
   }
-
-  /**
-   * @dev Emits when a service id added to any NFT. This event emits when NFTs are
-   * serviceed
-   */
-  event Service(
-    address indexed _from,
-    uint256 indexed _tokenId,
-    string serviceType,
-    string description
-  );
 
   constructor(
   )
@@ -97,7 +89,6 @@ Ownable
     nftName = "ArianeeSmartAsset";
     nftSymbol = "AriaSA";
   }
-
 
   /**
    * @dev Public function batch function for reserveToken
@@ -112,53 +103,54 @@ Ownable
 
   /**
    * @dev Public function reserve a NFT at the given ID.
-   * @dev Can only be call by an authorized address
-   * @param _id uint256 ID to reserve
+   * @dev Can only be called by an authorized address
+   * @param _tokenId uint256 ID to reserve
    */
-  function reserveToken(uint256 _id) public hasAbility(ABILITY_CREATE_ASSET) whenNotPaused() {
-    super._create(tx.origin, _id);
+  function reserveToken(uint256 _tokenId) public hasAbility(ABILITY_CREATE_ASSET) whenNotPaused() {
+    super._create(tx.origin, _tokenId);
   }
 
   /**
    * @dev Public function specify information on a reserved NFT
-   * @dev Can only be called once by an NFT's operator
-   * @param _id uint256 ID of the NFT to modify
+   * @dev Can only be called once and by an NFT's operator
+   * @param _tokenId uint256 ID of the NFT to modify
    * @param _imprint bytes32 proof of the certification
    * @param _uri string URI of the JSON certification
    * @param _encryptedInitialKey bytes32 initial key
-   * @param _initialKeyIsRecoveryKey bool if true set initial key as recovery key
+   * @param _tokenRecoveryTimestamp uint256 limit date for the issuer to be able to transfert back the NFT
+   * @param _initialKeyIsRequestKey bool if true set initial key as request key
    */
-  function hydrateToken(uint256 _id, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey, bool _initialKeyIsRecoveryKey) public whenNotPaused() canOperate(_id) {
-    require(!(tokenCreation[_id] > 0), NFT_ALREADY_SET);
+  function hydrateToken(uint256 _tokenId, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey, uint256 _tokenRecoveryTimestamp, bool _initialKeyIsRequestKey) public whenNotPaused() canOperate(_tokenId) {
+    require(!(tokenCreation[_tokenId] > 0), NFT_ALREADY_SET);
 
-    tokenIssuer[_id] = idToOwner[_id];
-    encryptedInitialKey[_id] = _encryptedInitialKey;
-    tokenCreation[_id] = block.timestamp;
-    idToImprint[_id] = _imprint;
+    tokenIssuer[_tokenId] = idToOwner[_tokenId];
+    encryptedInitialKey[_tokenId] = _encryptedInitialKey;
+    tokenCreation[_tokenId] = block.timestamp;
+    idToImprint[_tokenId] = _imprint;
+    tokenRecoveryTimestamp[_tokenId] = _tokenRecoveryTimestamp;
 
-    idToUri[_id] = _uri;
+    idToUri[_tokenId] = _uri;
 
-    tokenLost[_id] = false;
+    tokenLost[_tokenId] = false;
 
-    if (_initialKeyIsRecoveryKey) {
-      tokenAccess[_id][2] = _encryptedInitialKey;
+    if (_initialKeyIsRequestKey) {
+      tokenAccess[_tokenId][2] = _encryptedInitialKey;
     }
   }
 
   /**
    * @dev Public function to recover the NFT for the issuer
-   * @dev Works only for the issuer and if the token was created within 31 days
-   * @param _id ID of the NFT to recover
+   * @dev Works only if called by the issuer and if called before the token Recovery Timestamp of the NFT
+   * @param _tokenId ID of the NFT to recover
    */
-  function recoverTokenToIssuer(uint256 _id) public whenNotPaused() isIssuer(_id) {
-    require((block.timestamp - tokenCreation[_id]) < 2678400);
-    idToApproval[_id] = tokenIssuer[_id];
-    _transferFrom(idToOwner[_id], tokenIssuer[_id], _id);
+  function recoverTokenToIssuer(uint256 _tokenId) public whenNotPaused() isIssuer(_tokenId) {
+    require((block.timestamp - tokenCreation[_tokenId]) < tokenRecoveryTimestamp[_tokenId]);
+    idToApproval[_tokenId] = tokenIssuer[_tokenId];
+    _transferFrom(idToOwner[_tokenId], tokenIssuer[_tokenId], _tokenId);
   }
 
-
   /**
-  * @dev function to check if the owner of a NFT is also the issuer
+  * @dev function to check if msg.sender is the issuer of a NFT 
   * @param _tokenId ID of the NFT to test.
   */
   modifier isIssuer(uint256 _tokenId) {
@@ -166,10 +158,9 @@ Ownable
     _;
   }
 
-
   /**
   * @dev External function to update the tokenURI
-  * @dev Can only bve called by the NFT's issuer
+  * @dev Can only be called by the NFT's issuer
   * @param _tokenId id of the NFT to edit
   * @param _uri New URI for the certificate
   */
@@ -178,14 +169,21 @@ Ownable
     idToUri[_tokenId] = _uri;
   }
 
+  /**
+  * @dev External function that send the URI of a NFT
+  * @param _tokenId uint256 ID of the NFT
+  */
+  function tokenURI(uint256 _tokenId) external view returns (string memory){
+    return idToUri[_tokenId];
+  }
 
   /**
-   * @dev External function Add an token access to a NFT
+   * @dev External function add a token access to a NFT
    * @dev can only be called by an NFT's operator
-   * @param _tokenId uint256 id of the NFT
-   * @param _encryptedTokenKey bytes32 encoded token access to add ()
+   * @param _tokenId uint256 ID of the NFT
+   * @param _encryptedTokenKey bytes32 encoded token access to add
    * @param _enable boolean to enable or disable the token access
-   * @param _tokenType uint8 type of token access (0=view, 1=service, 2=transfer)
+   * @param _tokenType uint8 type of token access (0=view, 1=service, 2=transfert)
    */
   function addTokenAccess(uint256 _tokenId, bytes32 _encryptedTokenKey, bool _enable, uint8 _tokenType) external canOperate(_tokenId) whenNotPaused() returns (bool) {
     if (_enable) {
@@ -206,32 +204,37 @@ Ownable
   }
 
   /**
-   * @dev Checks if NFT is requestable with the given token key
-   * @param _tokenId uint256 id of the NFT to validate
+   * @dev Modifier checks if NFT is requestable with the given token key
+   * @param _tokenId uint256 ID of the NFT to validate
    * @param _tokenKey token key to check
    */
   modifier canRequest(uint256 _tokenId, string memory _tokenKey) {
-    require(tokenAccess[_tokenId][2] != 0x00 && keccak256(abi.encodePacked(_tokenKey)) == tokenAccess[_tokenId][2]);
+    require(isTokenValid(_tokenId, _tokenKey, 2));
     _;
   }
 
-
   /**
-   * @dev Transfers the ownership of a given token ID to another address
-   * @dev Requires the msg sender to have the correct tokenKey and NFT id has to be requestable
-   * @dev Automaticaly approve the requester if _tokenKey is valid to allow transferFrom without removing NFT compliance
-   * @dev msg.sender has to be _to
-   * @param _to address to receive the ownership of the given NFT id
-   * @param _tokenId uint256 ID of the token to be transferred
+   * @dev Public function that check if a token access is valid
+   * @param _tokenId uint256 id of the NFT to validate
    * @param _tokenKey string to encode to check transfert token access
-  */
-  function requestFrom(address _to, uint256 _tokenId, string memory _tokenKey) public canRequest(_tokenId, _tokenKey) whenNotPaused() {
-    require(msg.sender == _to);
-    idToApproval[_tokenId] = _to;
-    tokenAccess[_tokenId][2] = 0x00;
-    _transferFrom(idToOwner[_tokenId], _to, _tokenId);
+   * @param _tokenType uint8 type of token access (0=view, 1=service, 2=transfert)
+   */
+  function isTokenValid(uint256 _tokenId, string memory _tokenKey, uint8 _tokenType) public view returns (bool){
+    return tokenAccess[_tokenId][_tokenType] != 0x00 && keccak256(abi.encodePacked(_tokenKey)) == tokenAccess[_tokenId][_tokenType];
   }
 
+  /**
+   * @dev Transfers the ownership of a NFT to another address
+   * @dev Requires the msg sender to have the correct tokenKey and NFT has to be requestable
+   * @dev Automaticaly approve the requester if _tokenKey is valid to allow transferFrom without removing ERC721 compliance
+   * @param _tokenId uint256 ID of the NFT to transfert
+   * @param _tokenKey string to encode to check transfert token access
+   */
+  function requestToken(uint256 _tokenId, string memory _tokenKey) public canRequest(_tokenId, _tokenKey) whenNotPaused() {
+    idToApproval[_tokenId] = msg.sender;
+    tokenAccess[_tokenId][2] = 0x00;
+    _transferFrom(idToOwner[_tokenId], msg.sender, _tokenId);
+  }
 
   /**
    * @dev Public function to check if a NFT is viewable
@@ -249,14 +252,13 @@ Ownable
     return tokenAccess[_tokenId][1] != 0x00;
   }
 
-
   /**
    * @dev Checks if NFT id is service ok and correct token access is given
    * @param _tokenId uint256 ID of the NFT to validate
    * @param _tokenKey string to encode to check service token access
    */
   modifier canService(uint256 _tokenId, string memory _tokenKey) {
-    require(tokenAccess[_tokenId][1] != 0x00 && keccak256(abi.encodePacked(_tokenKey)) == tokenAccess[_tokenId][1]);
+    require(isTokenValid(_tokenId, _tokenKey, 1));
     _;
   }
 
@@ -279,7 +281,17 @@ Ownable
     );
   }
 
-  // lost functions
+  /**
+   * @dev Emits when a service id added to any NFT. This event emits when NFTs are
+   * serviceed
+   */
+  event Service(
+    address indexed _from,
+    uint256 indexed _tokenId,
+    string serviceType,
+    string description
+  );
+
   /**
    * @dev Set a NFT as lost and block all transation
    * @param _tokenId uint256 ID of the token to set lost
@@ -291,7 +303,7 @@ Ownable
 
   /**
    * @dev Check if a NFT is not lost
-   * @param _tokenId uint256 ID of the token to test
+   * @param _tokenId uint256 ID of the NFT to test
   */
   modifier isTokenNotLost(uint256 _tokenId) {
     require(!tokenLost[_tokenId]);
