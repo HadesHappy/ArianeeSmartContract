@@ -2,6 +2,7 @@ const ArianeeSmartAsset = artifacts.require('ArianeeSmartAsset');
 const catchRevert = require('./helpers/exceptions.js').catchRevert;
 
 contract('ArianeeSmartAsset', (accounts) => {
+  let smartAsset;
   beforeEach(async () => {
     smartAsset = await ArianeeSmartAsset.new();
   });
