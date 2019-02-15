@@ -229,10 +229,13 @@ Ownable
    * @dev Automaticaly approve the requester if _tokenKey is valid to allow transferFrom without removing ERC721 compliance
    * @param _tokenId uint256 ID of the NFT to transfert
    * @param _tokenKey string to encode to check transfert token access
+   * @param _keepRequestToken bool if false erase the access token of the NFT
    */
-  function requestToken(uint256 _tokenId, string memory _tokenKey) public canRequest(_tokenId, _tokenKey) whenNotPaused() {
+  function requestToken(uint256 _tokenId, string memory _tokenKey, bool _keepRequestToken) public canRequest(_tokenId, _tokenKey) whenNotPaused() {
     idToApproval[_tokenId] = msg.sender;
-    tokenAccess[_tokenId][2] = 0x00;
+    if(!_keepRequestToken){
+        tokenAccess[_tokenId][2] = 0x00;    
+    }
     _transferFrom(idToOwner[_tokenId], msg.sender, _tokenId);
   }
 

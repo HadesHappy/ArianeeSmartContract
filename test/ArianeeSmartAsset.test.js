@@ -67,7 +67,7 @@ contract('ArianeeSmartAsset', (accounts) => {
     await smartAsset.reserveToken(1,{from: accounts[0]});
     await smartAsset.hydrateToken(1, web3.utils.keccak256('imprint'), 'http://arianee.org', web3.utils.keccak256('encryptedInitialKey'), 2678400, true);
 
-    await smartAsset.requestToken(1, 'encryptedInitialKey', {from:accounts[1]});
+    await smartAsset.requestToken(1, 'encryptedInitialKey', false, {from:accounts[1]});
     const balanceAccount0 = await smartAsset.balanceOf(accounts[0]);
     const balanceAccount1 = await smartAsset.balanceOf(accounts[1]);
     assert.equal(balanceAccount0, 0);
@@ -90,7 +90,7 @@ contract('ArianeeSmartAsset', (accounts) => {
     await smartAsset.hydrateToken(1, web3.utils.keccak256('imprint'), 'http://arianee.org', web3.utils.keccak256('encryptedInitialKey'), 2678400, false);
     await smartAsset.addTokenAccess(1, web3.utils.keccak256('transferableKey'),true, 2);
 
-    await smartAsset.requestToken(1, 'transferableKey', {from:accounts[1]});
+    await smartAsset.requestToken(1, 'transferableKey', false, {from:accounts[1]});
     const balanceAccount0 = await smartAsset.balanceOf(accounts[0]);
     const balanceAccount1 = await smartAsset.balanceOf(accounts[1]);
     assert.equal(balanceAccount0, 0);
@@ -103,8 +103,8 @@ contract('ArianeeSmartAsset', (accounts) => {
     await smartAsset.hydrateToken(1, web3.utils.keccak256('imprint'), 'http://arianee.org', web3.utils.keccak256('encryptedInitialKey'), 2678400, false);
     await smartAsset.addTokenAccess(1, web3.utils.keccak256('transferableKey'),true, 2);
 
-    await smartAsset.requestToken(1, 'transferableKey', {from:accounts[1]});
-    await catchRevert(smartAsset.requestToken(1, 'transferableKey', {from:accounts[2]}));
+    await smartAsset.requestToken(1, 'transferableKey', false, {from:accounts[1]});
+    await catchRevert(smartAsset.requestToken(1, 'transferableKey',false, {from:accounts[2]}));
 
     const balanceAccount1 = await smartAsset.balanceOf(accounts[1]);
     const balanceAccount2 = await smartAsset.balanceOf(accounts[2]);
@@ -113,12 +113,28 @@ contract('ArianeeSmartAsset', (accounts) => {
     assert.equal(balanceAccount2, 0);
   });
 
+  it('a token should be requestable after transfert if specified', async()=>{
+    await smartAsset.assignAbilities(accounts[0], [1]);
+    await smartAsset.reserveToken(1,{from: accounts[0]});
+    await smartAsset.hydrateToken(1, web3.utils.keccak256('imprint'), 'http://arianee.org', web3.utils.keccak256('encryptedInitialKey'), 2678400, false);
+    await smartAsset.addTokenAccess(1, web3.utils.keccak256('transferableKey'),true, 2);
+
+    await smartAsset.requestToken(1, 'transferableKey', true, {from:accounts[1]});
+    await smartAsset.requestToken(1, 'transferableKey', false, {from:accounts[2]});
+
+    const balanceAccount1 = await smartAsset.balanceOf(accounts[1]);
+    const balanceAccount2 = await smartAsset.balanceOf(accounts[2]);
+
+    assert.equal(balanceAccount1, 0);
+    assert.equal(balanceAccount2, 1);
+  });
+
   it('NFT should be recoverable within a month by the issuer', async()=>{
     await smartAsset.assignAbilities(accounts[0], [1]);
     await smartAsset.reserveToken(1, {from: accounts[0]});
     await smartAsset.hydrateToken(1, web3.utils.keccak256('imprint'), 'http://arianee.org', web3.utils.keccak256('encryptedInitialKey'), 2678400, true, {from: accounts[0]});
 
-    await smartAsset.requestToken(1, 'encryptedInitialKey', {from:accounts[1]});
+    await smartAsset.requestToken(1, 'encryptedInitialKey', false, {from:accounts[1]});
     await smartAsset.recoverTokenToIssuer(1, {from:accounts[0]});
 
     const balanceAccount0 = await smartAsset.balanceOf(accounts[0]);
@@ -132,7 +148,7 @@ contract('ArianeeSmartAsset', (accounts) => {
     await smartAsset.assignAbilities(accounts[0], [1]);
     await smartAsset.reserveToken(1, {from: accounts[0]});
     await smartAsset.hydrateToken(1, web3.utils.keccak256('imprint'), 'http://arianee.org', web3.utils.keccak256('encryptedInitialKey'), 2678400, true);
-    await smartAsset.requestToken(1, 'encryptedInitialKey', {from:accounts[1]});
+    await smartAsset.requestToken(1, 'encryptedInitialKey', false, {from:accounts[1]});
 
     await smartAsset.updateTokenURI(1,'newURI');
     const uri = await smartAsset.idToUri(1);
