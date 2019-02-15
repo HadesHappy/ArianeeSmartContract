@@ -13,29 +13,44 @@ NFTokenMetadataEnumerable,
 Abilitable,
 Ownable
 {
-
-  // Mapping from token id to encrypted initial key
+  /**
+  * @dev Mapping from token id to encrypted initial key
+  */
   mapping(uint256 => bytes32) public encryptedInitialKey;
 
-  // Mapping from token id to issuer
+  /**
+  * @dev Mapping from token id to issuer
+  */
   mapping(uint256 => address) public tokenIssuer;
 
-  // Mapping from token id to URI
+  /**
+  * @dev Mapping from token id to URI
+  */
   mapping(uint256 => string) public idToUri;
 
-  // Mapping from token id to Token Access (0=view, 1=service, 2=transfert)
+  /**
+  * @dev Mapping from token id to Token Access (0=view, 1=service, 2=transfer)
+  */
   mapping(uint256 => mapping(uint8 => bytes32)) public tokenAccess;
 
-  //  Mapping from token id to TokenImprintUpdate
+  /**
+  * @dev Mapping from token id to TokenImprintUpdate
+  */
   mapping(uint256 => bytes32) public idToImprint;
 
-  // mapping from token id to timestamp
+  /**
+  * @dev Mapping from token id to timestamp
+  */
   mapping(uint256 => uint256) public tokenCreation;
 
-  // mapping from token id to lost flag
+  /**
+  * @dev Mapping from token id to lost flag
+  */
   mapping(uint256 => bool) public tokenLost;
 
-  // mapping from token id to lost flag
+  /**
+  * @dev Mapping from token id to lost flag
+  */
   mapping(uint256 => uint256) public tokenRecoveryTimestamp;
 
 
@@ -117,7 +132,7 @@ Ownable
    * @param _imprint bytes32 proof of the certification
    * @param _uri string URI of the JSON certification
    * @param _encryptedInitialKey bytes32 initial key
-   * @param _tokenRecoveryTimestamp uint256 limit date for the issuer to be able to transfert back the NFT
+   * @param _tokenRecoveryTimestamp uint256 limit date for the issuer to be able to transfer back the NFT
    * @param _initialKeyIsRequestKey bool if true set initial key as request key
    */
   function hydrateToken(uint256 _tokenId, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey, uint256 _tokenRecoveryTimestamp, bool _initialKeyIsRequestKey) public whenNotPaused() canOperate(_tokenId) {
@@ -183,7 +198,7 @@ Ownable
    * @param _tokenId uint256 ID of the NFT
    * @param _encryptedTokenKey bytes32 encoded token access to add
    * @param _enable boolean to enable or disable the token access
-   * @param _tokenType uint8 type of token access (0=view, 1=service, 2=transfert)
+   * @param _tokenType uint8 type of token access (0=view, 1=service, 2=transfer)
    */
   function addTokenAccess(uint256 _tokenId, bytes32 _encryptedTokenKey, bool _enable, uint8 _tokenType) external canOperate(_tokenId) whenNotPaused() returns (bool) {
     if (_enable) {
@@ -216,8 +231,8 @@ Ownable
   /**
    * @dev Public function that check if a token access is valid
    * @param _tokenId uint256 id of the NFT to validate
-   * @param _tokenKey string to encode to check transfert token access
-   * @param _tokenType uint8 type of token access (0=view, 1=service, 2=transfert)
+   * @param _tokenKey string to encode to check transfer token access
+   * @param _tokenType uint8 type of token access (0=view, 1=service, 2=transfer)
    */
   function isTokenValid(uint256 _tokenId, string memory _tokenKey, uint8 _tokenType) public view returns (bool){
     return tokenAccess[_tokenId][_tokenType] != 0x00 && keccak256(abi.encodePacked(_tokenKey)) == tokenAccess[_tokenId][_tokenType];
@@ -226,9 +241,9 @@ Ownable
   /**
    * @dev Transfers the ownership of a NFT to another address
    * @dev Requires the msg sender to have the correct tokenKey and NFT has to be requestable
-   * @dev Automaticaly approve the requester if _tokenKey is valid to allow transferFrom without removing ERC721 compliance
-   * @param _tokenId uint256 ID of the NFT to transfert
-   * @param _tokenKey string to encode to check transfert token access
+   * @dev automatically approve the requester if _tokenKey is valid to allow transferFrom without removing ERC721 compliance
+   * @param _tokenId uint256 ID of the NFT to transfer
+   * @param _tokenKey string to encode to check transfer token access
    * @param _keepRequestToken bool if false erase the access token of the NFT
    */
   function requestToken(uint256 _tokenId, string memory _tokenKey, bool _keepRequestToken) public canRequest(_tokenId, _tokenKey) whenNotPaused() {
@@ -268,7 +283,7 @@ Ownable
   /**
    * @dev Public function to emit a service
    * @dev Can only be called with a valid service token access
-   * @param _from address to send servuce
+   * @param _from address to send service
    * @param _tokenId uint256 ID of the NFT which receive service
    * @param _tokenKey string of the service encrypted key
    * @param _serviceType string
