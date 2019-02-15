@@ -35,7 +35,7 @@ contract('ArianeeSmartAsset', (accounts) => {
 
     assert.equal(tokenIssuer, accounts[0], 'The issuers set in the NFT is not the issuer');
     assert.equal(encryptedInitialKey, web3.utils.keccak256('encryptedInitialKey'), 'The encryptedInitialKey, is not set correctly');
-    assert.equal(tokenCreation, Math.floor(Date.now()/1000), 'The tokenCreation is not set correctly');
+    assert.approximately(tokenCreation.toNumber(), Math.floor(Date.now()/1000), 3, 'The tokenCreation is not set correctly');
     assert.equal(idToImprint, web3.utils.keccak256('imprint'), 'The imprint is not set correctly');
     assert.equal(idToUri, 'http://arianee.org', 'The URI is not set correctly');
     assert.equal(tokenLost, false, 'The token Lost should be false by default');
