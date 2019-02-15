@@ -159,7 +159,7 @@ Ownable
    * @param _tokenId ID of the NFT to recover.
    */
   function recoverTokenToIssuer(uint256 _tokenId) public whenNotPaused() isIssuer(_tokenId) {
-    require((block.timestamp - tokenCreation[_tokenId]) < tokenRecoveryTimestamp[_tokenId]);
+    require(block.timestamp < tokenRecoveryTimestamp[_tokenId]);
     idToApproval[_tokenId] = tokenIssuer[_tokenId];
     _transferFrom(idToOwner[_tokenId], tokenIssuer[_tokenId], _tokenId);
   }
