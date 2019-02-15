@@ -1,65 +1,90 @@
 pragma solidity 0.5.1;
 
-//import "./NFTokenMetadata.sol";
-//import "../tokens/ERC721Enumerable.sol";
-//import "./NFTokenEnumerable.sol";
-/*
-
-
-import "@0xcert/ethereum-utils/contracts/ownership/Ownable.sol";
+import "@0xcert/ethereum-utils-contracts/src/contracts/permission/ownable.sol";
 
 contract ArianeeIdentity is
-  NFTokenMetadata, 
-  NFTokenEnumerable  ,
-  Ownable
+Ownable
 {
 
-  constructor(
-  )
-    public
-  {
-    nftName = "ArianeeIdentity";
-    nftSymbol = "AriaI";
+  /**
+  * @dev A descriptive name.
+  */
+  string internal name;
+
+  /**
+  * @dev An abbreviated name.
+  */
+  string internal symbol;
+
+  /**
+  * @dev Mapping from address to whitelist boolean
+  */
+  mapping(address => bool) public whitelist;
+
+  /**
+  * @dev Mapping from address to URI.
+  */
+  mapping(address => string) public addressToUri;
+
+  /**
+  * @dev Mapping from address to imprint.
+  */
+  mapping(address => bytes32) public addressToImprint;
+
+  /**
+  * @dev Mapping from address to compromise date.
+  */
+  mapping(address => uint256) public compromiseDate;
+
+  constructor() public{
+    name = "Arianee Identity";
+    symbol = "AriaI";
   }
 
-  // Create or update identity for an ethereum address
-  function setIdentity(string json) 
-    external {
-
-    uint256 currentId;
-
-    if (this.balanceOf(msg.sender)>0) {
-      // Update current identity
-      currentId = this.tokenOfOwnerByIndex(msg.sender,0);
-      super._setTokenUri(currentId,json);
-
-
-    } else {
-      // Mint new identity
-      currentId = this.totalSupply() + 1;
-
-      super._mint(msg.sender, currentId);
-
-      super._setTokenUri(currentId,json);
-
-    }
-
+  /**
+  * @dev Check if an address is whitelisted.
+  * @param _identity The address to check.
+  */
+  modifier isWhitelisted(address _identity){
+    require(whitelist[_identity]);
+    _;
+  }
+  /**
+  * @dev Add a new address to whitelist
+  * @notice Can only be called by the owner, allow an address to create/update his URI and Imprint.
+  * @param _newIdentity Address to authorize.
+  */
+  function addAddressTowhitelist(address _newIdentity) public onlyOwner(){
+    whitelist[_newIdentity] = true;
   }
 
-  // retrieve identity for an ethereum address
-  function getIdentity(address owner)
-    external
-    view
-    returns (string) {
-
-
-      if (this.balanceOf(owner)>0) {
-        return this.tokenURI(this.tokenOfOwnerByIndex(owner,0));
-      } else {
-        return "undefined";
-      }
-
+  /**
+  * @dev Update URI and Imprint of an address.
+  * @param _uri URI to update.
+  * @param _imprint Imprint to update
+  */
+  function updateInformations(string memory _uri, bytes32 _imprint) public isWhitelisted(msg.sender){
+    addressToUri[msg.sender] = _uri;
+    addressToImprint[msg.sender] = _imprint;
   }
 
+  /**
+   * @dev Add a compromise date to an identity.
+   * @notice Can only be called by the contract's owner.
+   * @param _identity address compromise
+   * @param _compromiseDate compromise date
+   */
+  function updateCompromiseDate(address _identity, uint256 _compromiseDate) public onlyOwner(){
+    compromiseDate[_identity] = _compromiseDate;
+  }
 
-}*/
+  /**
+  * @dev Get a token URI
+  * @param _address address of the identity
+  */
+  function tokenURI(address _address) external view returns (string memory){
+    return addressToUri[_address];
+  }
+
+}
+
