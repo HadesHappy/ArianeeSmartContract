@@ -90,10 +90,11 @@ Ownable
   /**
    * @dev Check if the msg.sender can operate the NFT.
    * @param _tokenId ID of the NFT to test.
+   * @param _operator Address to test.
    */
-  modifier canOperate(uint256 _tokenId) {
+  modifier canOperate(uint256 _tokenId, address _operator) {
     address tokenOwner = idToOwner[_tokenId];
-    require(tokenOwner == msg.sender || ownerToOperators[tokenOwner][msg.sender], NOT_OWNER_OR_OPERATOR);
+    require(tokenOwner == _operator || ownerToOperators[tokenOwner][_operator], NOT_OWNER_OR_OPERATOR);
     _;
   }
 
@@ -135,7 +136,7 @@ Ownable
    * @param _tokenRecoveryTimestamp Limit date for the issuer to be able to transfer back the NFT.
    * @param _initialKeyIsRequestKey If true set initial key as request key.
    */
-  function hydrateToken(uint256 _tokenId, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey, uint256 _tokenRecoveryTimestamp, bool _initialKeyIsRequestKey) public whenNotPaused() canOperate(_tokenId) {
+  function hydrateToken(uint256 _tokenId, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey, uint256 _tokenRecoveryTimestamp, bool _initialKeyIsRequestKey) public hasAbility(ABILITY_CREATE_ASSET) whenNotPaused() canOperate(_tokenId, tx.origin) {
     require(!(tokenCreation[_tokenId] > 0), NFT_ALREADY_SET);
 
     tokenIssuer[_tokenId] = idToOwner[_tokenId];
@@ -202,7 +203,7 @@ Ownable
    * @param _tokenType Type of token access (0=view, 1=service, 2=transfer).
    * @return true.
    */
-  function addTokenAccess(uint256 _tokenId, bytes32 _encryptedTokenKey, bool _enable, uint8 _tokenType) external canOperate(_tokenId) whenNotPaused() returns (bool) {
+  function addTokenAccess(uint256 _tokenId, bytes32 _encryptedTokenKey, bool _enable, uint8 _tokenType) external canOperate(_tokenId, msg.sender) whenNotPaused() returns (bool) {
     if (_enable) {
       tokenAccess[_tokenId][_tokenType] = _encryptedTokenKey;
     }
@@ -249,12 +250,12 @@ Ownable
    * @param _tokenKey String to encode to check transfer token access.
    * @param _keepRequestToken If false erase the access token of the NFT.
    */
-  function requestToken(uint256 _tokenId, string memory _tokenKey, bool _keepRequestToken) public canRequest(_tokenId, _tokenKey) whenNotPaused() {
-    idToApproval[_tokenId] = msg.sender;
+  function requestToken(uint256 _tokenId, string memory _tokenKey, bool _keepRequestToken) public hasAbility(ABILITY_CREATE_ASSET) canRequest(_tokenId, _tokenKey) whenNotPaused() {
+    idToApproval[_tokenId] = tx.origin;
     if(!_keepRequestToken){
         tokenAccess[_tokenId][2] = 0x00;    
     }
-    _transferFrom(idToOwner[_tokenId], msg.sender, _tokenId);
+    _transferFrom(idToOwner[_tokenId], tx.origin, _tokenId);
   }
 
   /**
@@ -291,7 +292,7 @@ Ownable
    * @param _from Address of the service's origin.
    * @param _tokenId ID of the NFT which receive service.
    * @param _tokenKey String of the service encrypted key.
-   * @param _serviceType Type of the service.
+   * @param _serviceType Type of the service.e
    * @param _description Description of the service.
    */
   function serviceFrom(address _from, uint256 _tokenId, string memory _tokenKey, string memory _serviceType, string memory _description) public canService(_tokenId, _tokenKey) whenNotPaused() {
@@ -319,7 +320,7 @@ Ownable
    * @param _tokenId  ID of the token to set lost.
    * @param _isLost Boolean to set the token lost or not.
    */
-  function setTokenLost(uint256 _tokenId, bool _isLost) public whenNotPaused() canOperate(_tokenId) {
+  function setTokenLost(uint256 _tokenId, bool _isLost) public whenNotPaused() canOperate(_tokenId, msg.sender) {
     tokenLost[_tokenId] = _isLost;
   }
 

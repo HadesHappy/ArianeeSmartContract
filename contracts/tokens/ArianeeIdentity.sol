@@ -35,6 +35,13 @@ Ownable
    * @dev Mapping from address to compromise date.
    */
   mapping(address => uint256) public compromiseDate;
+  
+  mapping(address => CreditBuy[]) public creditHistory;
+  
+  struct CreditBuy{
+      uint256 price;
+      uint256 quantity;
+  }
 
   constructor() public{
     name = "Arianee Identity";
@@ -85,6 +92,29 @@ Ownable
   function tokenURI(address _address) external view returns (string memory){
     return addressToUri[_address];
   }
+  
+  function addCreditHistory(address _identity, uint256 _price, uint256 _quantity) public{
+      
+      CreditBuy memory _creditBuy = CreditBuy({
+          price: _price,
+          quantity: _quantity
+      });
+      
+      creditHistory[_identity].push(_creditBuy);
+  }
+
+    function getFirstCreditPrice(address _identity) public returns (uint256){
+        uint256 price = creditHistory[_identity][0].price;
+        creditHistory[_identity][0].quantity = creditHistory[_identity][0].quantity-1;
+        if(creditHistory[_identity][0].quantity == 0){
+            for(uint i=0;i<creditHistory[_identity].length-1;i++){
+                creditHistory[_identity][i] = creditHistory[_identity][i+1];
+            }
+        }
+        
+        return price;
+        
+    }
 
 }
 
