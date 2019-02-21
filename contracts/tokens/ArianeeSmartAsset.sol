@@ -8,6 +8,10 @@ import "@0xcert/ethereum-utils-contracts/src/contracts/utils/address-utils.sol";
 
 import "@0xcert/ethereum-erc721-contracts/src/contracts/nf-token-metadata-enumerable.sol";
 
+contract ArianeeWhitelist {
+    function addWhitelistdeAddress(uint256 _tokenId, address _address) public;
+}
+
 contract ArianeeSmartAsset is
 NFTokenMetadataEnumerable,
 Abilitable,
@@ -66,6 +70,8 @@ Ownable
   string constant NOT_OWNER_OR_OPERATOR = "007004";
 
   bool isPaused = false;
+  
+  ArianeeWhitelist arianeeWhitelist;
 
   event IsPaused(bool isPaused);
 
@@ -99,11 +105,13 @@ Ownable
   }
 
   constructor(
+      address _arianeeWhitelistAddress
   )
   public
   {
     nftName = "ArianeeSmartAsset";
     nftSymbol = "AriaSA";
+    arianeeWhitelist = ArianeeWhitelist(address(_arianeeWhitelistAddress));
   }
 
   /**
@@ -148,10 +156,13 @@ Ownable
     idToUri[_tokenId] = _uri;
 
     tokenLost[_tokenId] = false;
+    
+    arianeeWhitelist.addWhitelistdeAddress(_tokenId, idToOwner[_tokenId]);
 
     if (_initialKeyIsRequestKey) {
       tokenAccess[_tokenId][2] = _encryptedInitialKey;
     }
+    
   }
 
   /**
@@ -257,14 +268,10 @@ Ownable
     }
     _transferFrom(idToOwner[_tokenId], tx.origin, _tokenId);
   }
-
-  /**
-   * @dev Check if a NFT is viewable.
-   * @param _tokenId ID of the NFT to check.
-   * @return True if the NFT is viewable.
-   */
-  function isView(uint256 _tokenId) public view returns (bool) {
-    return tokenAccess[_tokenId][0] != 0x00;
+  
+  function _transferFrom(address _to, address _from, uint256 _tokenId) internal {
+      super._transferFrom(_to, _from, _tokenId);
+      arianeeWhitelist.addWhitelistdeAddress(_tokenId, _to);
   }
 
   /**
@@ -285,35 +292,6 @@ Ownable
     require(isTokenValid(_tokenId, _tokenKey, 1));
     _;
   }
-
-  /**
-   * @dev Emit a service.
-   * @notice Can only be called with a valid service token access.
-   * @param _from Address of the service's origin.
-   * @param _tokenId ID of the NFT which receive service.
-   * @param _tokenKey String of the service encrypted key.
-   * @param _serviceType Type of the service.e
-   * @param _description Description of the service.
-   */
-  function serviceFrom(address _from, uint256 _tokenId, string memory _tokenKey, string memory _serviceType, string memory _description) public canService(_tokenId, _tokenKey) whenNotPaused() {
-    tokenAccess[_tokenId][1] = 0x00;
-    emit Service(
-      _from,
-      _tokenId,
-      _serviceType,
-      _description
-    );
-  }
-
-  /**
-   * @dev Emits when a service id added to any NFT. This event emits when NFTs are serviceed.
-   */
-  event Service(
-    address indexed _from,
-    uint256 indexed _tokenId,
-    string serviceType,
-    string description
-  );
 
   /**
    * @dev Set a NFT as lost.
