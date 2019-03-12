@@ -56,6 +56,11 @@ Ownable
    * @dev Mapping from token id to lost flag.
    */
   mapping(uint256 => uint256) public tokenRecoveryTimestamp;
+  
+  /**
+   * @dev Mapping from token id to recovery request bool. 
+   */
+  mapping(uint256=>bool) recoveryRequest;
 
 
   uint8 constant ABILITY_CREATE_ASSET = 1;
@@ -174,6 +179,27 @@ Ownable
     require(block.timestamp < tokenRecoveryTimestamp[_tokenId]);
     idToApproval[_tokenId] = tokenIssuer[_tokenId];
     _transferFrom(idToOwner[_tokenId], tokenIssuer[_tokenId], _tokenId);
+  }
+  
+  /**
+   * @dev Update a recovery request (doesn't transfer the NFT).
+   * @notice Works only if called by the issuer.
+   * @param _tokenId ID of the NFT to recover.
+   * @param _active boolean to active or unactive the request.
+   */
+  function updateRecoveryRequest(uint256 _tokenId, bool _active) public whenNotPaused() isIssuer(_tokenId){
+      recoveryRequest[_tokenId] = _active;
+  }
+  
+  /**
+   * @dev Valid a recovery request and transfer the NFT to the issuer.
+   * @notice Works only if the request is active and if called by the owner of the contract.
+   * @param _tokenId Id of the NFT to recover.
+   */
+  function validRecoveryRequest(uint256 _tokenId) public onlyOwner(){
+      require(recoveryRequest[_tokenId]);
+      idToApproval[_tokenId] = owner;
+      _transferFrom(idToOwner[_tokenId], tokenIssuer[_tokenId], _tokenId);
   }
 
   /**
