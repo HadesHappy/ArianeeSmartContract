@@ -9,7 +9,7 @@ import "@0xcert/ethereum-utils-contracts/src/contracts/utils/address-utils.sol";
 import "@0xcert/ethereum-erc721-contracts/src/contracts/nf-token-metadata-enumerable.sol";
 
 contract ArianeeWhitelist {
-    function addWhitelistdeAddress(uint256 _tokenId, address _address) public;
+    function addWhitelistedAddress(uint256 _tokenId, address _address) public;
 }
 
 contract ArianeeSmartAsset is
@@ -157,7 +157,7 @@ Ownable
 
     tokenLost[_tokenId] = false;
     
-    arianeeWhitelist.addWhitelistdeAddress(_tokenId, idToOwner[_tokenId]);
+    arianeeWhitelist.addWhitelistedAddress(_tokenId, idToOwner[_tokenId]);
 
     if (_initialKeyIsRequestKey) {
       tokenAccess[_tokenId][2] = _encryptedInitialKey;
@@ -271,7 +271,7 @@ Ownable
   
   function _transferFrom(address _to, address _from, uint256 _tokenId) internal {
       super._transferFrom(_to, _from, _tokenId);
-      arianeeWhitelist.addWhitelistdeAddress(_tokenId, _to);
+      arianeeWhitelist.addWhitelistedAddress(_tokenId, _to);
   }
 
   /**
