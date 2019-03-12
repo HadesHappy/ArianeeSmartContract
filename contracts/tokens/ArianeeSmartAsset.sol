@@ -8,6 +8,10 @@ import "@0xcert/ethereum-utils-contracts/src/contracts/utils/address-utils.sol";
 
 import "@0xcert/ethereum-erc721-contracts/src/contracts/nf-token-metadata-enumerable.sol";
 
+contract ArianeeWhitelist {
+    function addWhitelistedAddress(uint256 _tokenId, address _address) public;
+}
+
 contract ArianeeSmartAsset is
 NFTokenMetadataEnumerable,
 Abilitable,
@@ -52,6 +56,11 @@ Ownable
    * @dev Mapping from token id to lost flag.
    */
   mapping(uint256 => uint256) public tokenRecoveryTimestamp;
+  
+  /**
+   * @dev Mapping from token id to recovery request bool. 
+   */
+  mapping(uint256=>bool) recoveryRequest;
 
 
   uint8 constant ABILITY_CREATE_ASSET = 1;
@@ -66,6 +75,8 @@ Ownable
   string constant NOT_OWNER_OR_OPERATOR = "007004";
 
   bool isPaused = false;
+  
+  ArianeeWhitelist arianeeWhitelist;
 
   event IsPaused(bool isPaused);
 
@@ -90,19 +101,22 @@ Ownable
   /**
    * @dev Check if the msg.sender can operate the NFT.
    * @param _tokenId ID of the NFT to test.
+   * @param _operator Address to test.
    */
-  modifier canOperate(uint256 _tokenId) {
+  modifier canOperate(uint256 _tokenId, address _operator) {
     address tokenOwner = idToOwner[_tokenId];
-    require(tokenOwner == msg.sender || ownerToOperators[tokenOwner][msg.sender], NOT_OWNER_OR_OPERATOR);
+    require(tokenOwner == _operator || ownerToOperators[tokenOwner][_operator], NOT_OWNER_OR_OPERATOR);
     _;
   }
 
   constructor(
+      address _arianeeWhitelistAddress
   )
   public
   {
     nftName = "ArianeeSmartAsset";
     nftSymbol = "AriaSA";
+    arianeeWhitelist = ArianeeWhitelist(address(_arianeeWhitelistAddress));
   }
 
   /**
@@ -135,7 +149,7 @@ Ownable
    * @param _tokenRecoveryTimestamp Limit date for the issuer to be able to transfer back the NFT.
    * @param _initialKeyIsRequestKey If true set initial key as request key.
    */
-  function hydrateToken(uint256 _tokenId, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey, uint256 _tokenRecoveryTimestamp, bool _initialKeyIsRequestKey) public whenNotPaused() canOperate(_tokenId) {
+  function hydrateToken(uint256 _tokenId, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey, uint256 _tokenRecoveryTimestamp, bool _initialKeyIsRequestKey) public hasAbility(ABILITY_CREATE_ASSET) whenNotPaused() canOperate(_tokenId, tx.origin) {
     require(!(tokenCreation[_tokenId] > 0), NFT_ALREADY_SET);
 
     tokenIssuer[_tokenId] = idToOwner[_tokenId];
@@ -147,10 +161,13 @@ Ownable
     idToUri[_tokenId] = _uri;
 
     tokenLost[_tokenId] = false;
+    
+    arianeeWhitelist.addWhitelistedAddress(_tokenId, idToOwner[_tokenId]);
 
     if (_initialKeyIsRequestKey) {
       tokenAccess[_tokenId][2] = _encryptedInitialKey;
     }
+    
   }
 
   /**
@@ -162,6 +179,27 @@ Ownable
     require(block.timestamp < tokenRecoveryTimestamp[_tokenId]);
     idToApproval[_tokenId] = tokenIssuer[_tokenId];
     _transferFrom(idToOwner[_tokenId], tokenIssuer[_tokenId], _tokenId);
+  }
+  
+  /**
+   * @dev Update a recovery request (doesn't transfer the NFT).
+   * @notice Works only if called by the issuer.
+   * @param _tokenId ID of the NFT to recover.
+   * @param _active boolean to active or unactive the request.
+   */
+  function updateRecoveryRequest(uint256 _tokenId, bool _active) public whenNotPaused() isIssuer(_tokenId){
+      recoveryRequest[_tokenId] = _active;
+  }
+  
+  /**
+   * @dev Valid a recovery request and transfer the NFT to the issuer.
+   * @notice Works only if the request is active and if called by the owner of the contract.
+   * @param _tokenId Id of the NFT to recover.
+   */
+  function validRecoveryRequest(uint256 _tokenId) public onlyOwner(){
+      require(recoveryRequest[_tokenId]);
+      idToApproval[_tokenId] = owner;
+      _transferFrom(idToOwner[_tokenId], tokenIssuer[_tokenId], _tokenId);
   }
 
   /**
@@ -202,7 +240,7 @@ Ownable
    * @param _tokenType Type of token access (0=view, 1=service, 2=transfer).
    * @return true.
    */
-  function addTokenAccess(uint256 _tokenId, bytes32 _encryptedTokenKey, bool _enable, uint8 _tokenType) external canOperate(_tokenId) whenNotPaused() returns (bool) {
+  function addTokenAccess(uint256 _tokenId, bytes32 _encryptedTokenKey, bool _enable, uint8 _tokenType) external canOperate(_tokenId, msg.sender) whenNotPaused() returns (bool) {
     if (_enable) {
       tokenAccess[_tokenId][_tokenType] = _encryptedTokenKey;
     }
@@ -249,21 +287,17 @@ Ownable
    * @param _tokenKey String to encode to check transfer token access.
    * @param _keepRequestToken If false erase the access token of the NFT.
    */
-  function requestToken(uint256 _tokenId, string memory _tokenKey, bool _keepRequestToken) public canRequest(_tokenId, _tokenKey) whenNotPaused() {
-    idToApproval[_tokenId] = msg.sender;
+  function requestToken(uint256 _tokenId, string memory _tokenKey, bool _keepRequestToken) public hasAbility(ABILITY_CREATE_ASSET) canRequest(_tokenId, _tokenKey) whenNotPaused() {
+    idToApproval[_tokenId] = tx.origin;
     if(!_keepRequestToken){
         tokenAccess[_tokenId][2] = 0x00;    
     }
-    _transferFrom(idToOwner[_tokenId], msg.sender, _tokenId);
+    _transferFrom(idToOwner[_tokenId], tx.origin, _tokenId);
   }
-
-  /**
-   * @dev Check if a NFT is viewable.
-   * @param _tokenId ID of the NFT to check.
-   * @return True if the NFT is viewable.
-   */
-  function isView(uint256 _tokenId) public view returns (bool) {
-    return tokenAccess[_tokenId][0] != 0x00;
+  
+  function _transferFrom(address _to, address _from, uint256 _tokenId) internal {
+      super._transferFrom(_to, _from, _tokenId);
+      arianeeWhitelist.addWhitelistedAddress(_tokenId, _to);
   }
 
   /**
@@ -286,40 +320,11 @@ Ownable
   }
 
   /**
-   * @dev Emit a service.
-   * @notice Can only be called with a valid service token access.
-   * @param _from Address of the service's origin.
-   * @param _tokenId ID of the NFT which receive service.
-   * @param _tokenKey String of the service encrypted key.
-   * @param _serviceType Type of the service.
-   * @param _description Description of the service.
-   */
-  function serviceFrom(address _from, uint256 _tokenId, string memory _tokenKey, string memory _serviceType, string memory _description) public canService(_tokenId, _tokenKey) whenNotPaused() {
-    tokenAccess[_tokenId][1] = 0x00;
-    emit Service(
-      _from,
-      _tokenId,
-      _serviceType,
-      _description
-    );
-  }
-
-  /**
-   * @dev Emits when a service id added to any NFT. This event emits when NFTs are serviceed.
-   */
-  event Service(
-    address indexed _from,
-    uint256 indexed _tokenId,
-    string serviceType,
-    string description
-  );
-
-  /**
    * @dev Set a NFT as lost.
    * @param _tokenId  ID of the token to set lost.
    * @param _isLost Boolean to set the token lost or not.
    */
-  function setTokenLost(uint256 _tokenId, bool _isLost) public whenNotPaused() canOperate(_tokenId) {
+  function setTokenLost(uint256 _tokenId, bool _isLost) public whenNotPaused() canOperate(_tokenId, msg.sender) {
     tokenLost[_tokenId] = _isLost;
   }
 

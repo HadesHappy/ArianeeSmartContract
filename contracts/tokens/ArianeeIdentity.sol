@@ -36,6 +36,7 @@ Ownable
    */
   mapping(address => uint256) public compromiseDate;
 
+
   constructor() public{
     name = "Arianee Identity";
     symbol = "AriaI";
@@ -85,6 +86,7 @@ Ownable
   function tokenURI(address _address) external view returns (string memory){
     return addressToUri[_address];
   }
+  
 
 }
 
