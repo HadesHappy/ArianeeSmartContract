@@ -17,9 +17,9 @@ Ownable
   string internal symbol;
 
   /**
-   * @dev Mapping from address to whitelist boolean
+   * @dev Mapping from address to approvedList boolean
    */
-  mapping(address => bool) public whitelist;
+  mapping(address => bool) public approvedList;
 
   /**
    * @dev Mapping from address to URI.
@@ -43,20 +43,29 @@ Ownable
   }
 
   /**
-   * @dev Check if an address is whitelisted.
+   * @dev Check if an address is approved.
    * @param _identity The address to check.
    */
-  modifier isWhitelisted(address _identity){
-    require(whitelist[_identity]);
+  modifier isApproved(address _identity){
+    require(approvedList[_identity]);
     _;
   }
   /**
-   * @dev Add a new address to whitelist
+   * @dev Add a new address to approvedList
    * @notice Can only be called by the owner, allow an address to create/update his URI and Imprint.
    * @param _newIdentity Address to authorize.
    */
-  function addAddressTowhitelist(address _newIdentity) public onlyOwner(){
-    whitelist[_newIdentity] = true;
+  function addAddressToApprovedList(address _newIdentity) public onlyOwner(){
+    approvedList[_newIdentity] = true;
+  }
+  
+ /**
+  * @dev remove an address from approvedList.
+  * @notice Can only be called by the owner.
+  * @param _identity to delete from the approvedList.
+  */
+  function removeAddressFromApprovedList(address _identity) public onlyOwner(){
+      approvedList[_identity] = false;
   }
 
   /**
@@ -64,7 +73,7 @@ Ownable
    * @param _uri URI to update.
    * @param _imprint Imprint to update
    */
-  function updateInformations(string memory _uri, bytes32 _imprint) public isWhitelisted(msg.sender){
+  function updateInformations(string memory _uri, bytes32 _imprint) public isApproved(msg.sender){
     addressToUri[msg.sender] = _uri;
     addressToImprint[msg.sender] = _imprint;
   }
