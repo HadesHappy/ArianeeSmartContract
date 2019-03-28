@@ -105,10 +105,14 @@ Pausable
    * @param _tokenId ID of the NFT to test.
    * @param _operator Address to test.
    */
-  modifier canOperate(uint256 _tokenId, address _operator) {
-    address tokenOwner = idToOwner[_tokenId];
-    require(tokenOwner == _operator || ownerToOperators[tokenOwner][_operator], NOT_OWNER_OR_OPERATOR);
+  modifier isOperator(uint256 _tokenId, address _operator) {
+      require(canOperate(_tokenId, _operator), NOT_OWNER_OR_OPERATOR);
     _;
+  }
+  
+  function canOperate(uint256 _tokenId, address _operator) view public returns (bool){
+      address tokenOwner = idToOwner[_tokenId];
+      return tokenOwner == _operator || ownerToOperators[tokenOwner][_operator];
   }
 
   constructor(
@@ -151,7 +155,7 @@ Pausable
    * @param _tokenRecoveryTimestamp Limit date for the issuer to be able to transfer back the NFT.
    * @param _initialKeyIsRequestKey If true set initial key as request key.
    */
-  function hydrateToken(uint256 _tokenId, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey, uint256 _tokenRecoveryTimestamp, bool _initialKeyIsRequestKey) public hasAbility(ABILITY_CREATE_ASSET) whenNotPaused() canOperate(_tokenId, tx.origin) {
+  function hydrateToken(uint256 _tokenId, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey, uint256 _tokenRecoveryTimestamp, bool _initialKeyIsRequestKey) public hasAbility(ABILITY_CREATE_ASSET) whenNotPaused() isOperator(_tokenId, tx.origin) {
     require(!(tokenCreation[_tokenId] > 0), NFT_ALREADY_SET);
 
     tokenIssuer[_tokenId] = idToOwner[_tokenId];
@@ -242,7 +246,7 @@ Pausable
    * @param _tokenType Type of token access (0=view, 1=service, 2=transfer).
    * @return true.
    */
-  function addTokenAccess(uint256 _tokenId, bytes32 _encryptedTokenKey, bool _enable, uint8 _tokenType) external canOperate(_tokenId, msg.sender) whenNotPaused() returns (bool) {
+  function addTokenAccess(uint256 _tokenId, bytes32 _encryptedTokenKey, bool _enable, uint8 _tokenType) external isOperator(_tokenId, msg.sender) whenNotPaused() returns (bool) {
     if (_enable) {
       tokenAccess[_tokenId][_tokenType] = _encryptedTokenKey;
     }
@@ -308,7 +312,7 @@ Pausable
    * @param _tokenId  ID of the token to set lost.
    * @param _isLost Boolean to set the token lost or not.
    */
-  function setTokenLost(uint256 _tokenId, bool _isLost) public whenNotPaused() canOperate(_tokenId, msg.sender) {
+  function setTokenLost(uint256 _tokenId, bool _isLost) public whenNotPaused() isOperator(_tokenId, msg.sender) {
     tokenLost[_tokenId] = _isLost;
   }
 
