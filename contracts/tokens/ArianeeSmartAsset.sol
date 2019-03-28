@@ -35,7 +35,7 @@ Pausable
   mapping(uint256 => string) public idToUri;
 
   /**
-   * @dev Mapping from token id to Token Access (0=view, 1=service, 2=transfer).
+   * @dev Mapping from token id to Token Access (0=view, 1=transfer).
    */
   mapping(uint256 => mapping(uint8 => bytes32)) public tokenAccess;
 
@@ -167,7 +167,7 @@ Pausable
     arianeeWhitelist.addWhitelistedAddress(_tokenId, idToOwner[_tokenId]);
 
     if (_initialKeyIsRequestKey) {
-      tokenAccess[_tokenId][2] = _encryptedInitialKey;
+      tokenAccess[_tokenId][1] = _encryptedInitialKey;
     }
     
   }
@@ -258,7 +258,7 @@ Pausable
    * @return True if the NFT is requestable.
    */
   function isRequestable(uint256 _tokenId) public view returns (bool) {
-    return tokenAccess[_tokenId][2] != 0x00;
+    return tokenAccess[_tokenId][1] != 0x00;
   }
 
   /**
