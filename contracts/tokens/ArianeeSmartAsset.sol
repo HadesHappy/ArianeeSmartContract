@@ -176,6 +176,7 @@ Pausable
   }
   
   /**
+   * TODO change onlyOwner() by dedicated address
    * @dev Valid a recovery request and transfer the NFT to the issuer.
    * @notice Works only if the request is active and if called by the owner of the contract.
    * @param _tokenId Id of the NFT to recover.
@@ -274,10 +275,15 @@ Pausable
   function requestToken(uint256 _tokenId, string memory _tokenKey, bool _keepRequestToken) public hasAbility(ABILITY_CREATE_ASSET) canRequest(_tokenId, _tokenKey) whenNotPaused() {
     idToApproval[_tokenId] = tx.origin;
     if(!_keepRequestToken){
-        tokenAccess[_tokenId][2] = 0x00;    
+        tokenAccess[_tokenId][1] = 0x00;    
     }
     _transferFrom(idToOwner[_tokenId], tx.origin, _tokenId);
   }
+  
+  /**
+   * @dev Legacy function of TransferFrom, add the new owner as whitelisted for the message.
+   * 
+   */
   
   function _transferFrom(address _to, address _from, uint256 _tokenId) internal {
       super._transferFrom(_to, _from, _tokenId);
