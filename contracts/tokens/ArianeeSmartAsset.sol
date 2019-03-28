@@ -5,6 +5,7 @@ import "@0xcert/ethereum-utils-contracts/src/contracts/math/safe-math.sol";
 import "@0xcert/ethereum-utils-contracts/src/contracts/permission/abilitable.sol";
 import "@0xcert/ethereum-utils-contracts/src/contracts/permission/ownable.sol";
 import "@0xcert/ethereum-utils-contracts/src/contracts/utils/address-utils.sol";
+import "./Pausable.sol";
 
 import "@0xcert/ethereum-erc721-contracts/src/contracts/nf-token-metadata-enumerable.sol";
 
@@ -15,7 +16,8 @@ contract ArianeeWhitelist {
 contract ArianeeSmartAsset is
 NFTokenMetadataEnumerable,
 Abilitable,
-Ownable
+Ownable,
+Pausable
 {
   /**
    * @dev Mapping from token id to encrypted initial key.
@@ -300,25 +302,7 @@ Ownable
       arianeeWhitelist.addWhitelistedAddress(_tokenId, _to);
   }
 
-  /**
-   * @dev Check if a NFT is serviceable.
-   * @param _tokenId ID of the NFT to check.
-   * @return True if the NFT is serviceable.
-   */
-  function isService(uint256 _tokenId) public view returns (bool) {
-    return tokenAccess[_tokenId][1] != 0x00;
-  }
-
-  /**
-   * @dev Checks if NFT id is service ok and correct token access is given.
-   * @param _tokenId ID of the NFT to validate.
-   * @param _tokenKey String to encode to check service token access.
-   */
-  modifier canService(uint256 _tokenId, string memory _tokenKey) {
-    require(isTokenValid(_tokenId, _tokenKey, 1));
-    _;
-  }
-
+  
   /**
    * @dev Set a NFT as lost.
    * @param _tokenId  ID of the token to set lost.
