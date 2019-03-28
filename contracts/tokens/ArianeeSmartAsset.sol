@@ -76,30 +76,8 @@ Pausable
   string constant NFT_ALREADY_SET = "007006";
   string constant NOT_OWNER_OR_OPERATOR = "007004";
 
-  bool isPaused = false;
-  
   ArianeeWhitelist arianeeWhitelist;
-
-  event IsPaused(bool isPaused);
-
-  /**
-   * @dev Pause or unpause a contract.
-   * @notice Can only be called by owner of the contract.
-   * @param _isPaused boolean to pause or unpause the contract.
-   */
-  function setPause(bool _isPaused) external onlyOwner() {
-    isPaused = _isPaused;
-    emit IsPaused(_isPaused);
-  }
-
-  /**
-   * @dev Check if the contract is not paused.
-   */
-  modifier whenNotPaused(){
-    require(!isPaused, "007006");
-    _;
-  }
-
+  
   /**
    * @dev Check if the msg.sender can operate the NFT.
    * @param _tokenId ID of the NFT to test.
