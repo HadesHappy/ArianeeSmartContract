@@ -63,6 +63,11 @@ Pausable
    * @dev Mapping from token id to recovery request bool. 
    */
   mapping(uint256=>bool) recoveryRequest;
+  
+  /**
+   * @dev Mapping from token id to total rewards for this NFT.
+   */
+  mapping(uint256=>uint256) public rewards;
 
 
   uint8 constant ABILITY_CREATE_ASSET = 1;
@@ -108,9 +113,9 @@ Pausable
    * @param _first First ID to reserve.
    * @param _last Last ID to reserve.
    */
-  function reserveTokens(uint256 _first, uint256 _last) public {
+  function reserveTokens(uint256 _first, uint256 _last, address _to, uint256 _rewards) public {
     for (uint i = _first; i <= _last; i++) {
-      reserveToken(i);
+      reserveToken(i, _to, _rewards);
     }
   }
 
@@ -118,9 +123,12 @@ Pausable
    * @dev Reserve a NFT at the given ID.
    * @notice Can only be called by an authorized address.
    * @param _tokenId ID to reserve.
+   * @param _to receiver of the token.
+   * @param _rewards total rewards of this NFT.
    */
-  function reserveToken(uint256 _tokenId) public hasAbility(ABILITY_CREATE_ASSET) whenNotPaused() {
-    super._create(tx.origin, _tokenId);
+  function reserveToken(uint256 _tokenId, address _to, uint256 _rewards) public hasAbility(ABILITY_CREATE_ASSET) whenNotPaused() {
+    super._create(_to, _tokenId);
+    rewards[_tokenId] = _rewards;
   }
 
   /**
@@ -133,7 +141,7 @@ Pausable
    * @param _tokenRecoveryTimestamp Limit date for the issuer to be able to transfer back the NFT.
    * @param _initialKeyIsRequestKey If true set initial key as request key.
    */
-  function hydrateToken(uint256 _tokenId, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey, uint256 _tokenRecoveryTimestamp, bool _initialKeyIsRequestKey) public hasAbility(ABILITY_CREATE_ASSET) whenNotPaused() isOperator(_tokenId, tx.origin) {
+  function hydrateToken(uint256 _tokenId, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey, uint256 _tokenRecoveryTimestamp, bool _initialKeyIsRequestKey) public hasAbility(ABILITY_CREATE_ASSET) whenNotPaused() isOperator(_tokenId, tx.origin) returns(uint256){
     require(!(tokenCreation[_tokenId] > 0), NFT_ALREADY_SET);
 
     tokenIssuer[_tokenId] = idToOwner[_tokenId];
@@ -151,6 +159,8 @@ Pausable
     if (_initialKeyIsRequestKey) {
       tokenAccess[_tokenId][1] = _encryptedInitialKey;
     }
+    
+    return rewards[_tokenId];
     
   }
 
@@ -250,7 +260,7 @@ Pausable
    * @param _tokenKey token key to check.
    */
   modifier canRequest(uint256 _tokenId, string memory _tokenKey) {
-    require(isTokenValid(_tokenId, _tokenKey, 2));
+    require(isTokenValid(_tokenId, _tokenKey, 1));
     _;
   }
 
@@ -271,18 +281,21 @@ Pausable
    * @param _tokenId ID of the NFT to transfer.
    * @param _tokenKey String to encode to check transfer token access.
    * @param _keepRequestToken If false erase the access token of the NFT.
+   * @return total rewards of this NFT.
    */
-  function requestToken(uint256 _tokenId, string memory _tokenKey, bool _keepRequestToken) public hasAbility(ABILITY_CREATE_ASSET) canRequest(_tokenId, _tokenKey) whenNotPaused() {
-    idToApproval[_tokenId] = tx.origin;
+  function requestToken(uint256 _tokenId, string memory _tokenKey, bool _keepRequestToken) public hasAbility(ABILITY_CREATE_ASSET) canRequest(_tokenId, _tokenKey) whenNotPaused() returns(uint256){
+    idToApproval[_tokenId] = msg.sender;
     if(!_keepRequestToken){
         tokenAccess[_tokenId][1] = 0x00;    
     }
     _transferFrom(idToOwner[_tokenId], tx.origin, _tokenId);
+    uint256 reward = rewards[_tokenId];
+    delete rewards[_tokenId];
+    return reward;
   }
   
   /**
    * @dev Legacy function of TransferFrom, add the new owner as whitelisted for the message.
-   * 
    */
   
   function _transferFrom(address _to, address _from, uint256 _tokenId) internal {
