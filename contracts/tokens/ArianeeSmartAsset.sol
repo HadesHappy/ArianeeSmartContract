@@ -137,6 +137,7 @@ Pausable
 
   /**
    * @dev Reserve a NFT at the given ID.
+   * @notice Has to be called through an authorized contract.
    * @notice Can only be called by an authorized address.
    * @param _tokenId ID to reserve.
    * @param _to receiver of the token.
@@ -149,6 +150,7 @@ Pausable
 
   /**
    * @dev Specify information on a reserved NFT.
+   * @notice Has to be called through an authorized contract.
    * @notice Can only be called once and by an NFT's operator.
    * @param _tokenId ID of the NFT to modify.
    * @param _imprint Proof of the certification.
@@ -303,7 +305,8 @@ Pausable
 
   /**
    * @dev Transfers the ownership of a NFT to another address
-   * @notice Requires the msg sender to have the correct tokenKey and NFT has to be requestable.
+   * @notice Requires to send the correct tokenKey and the NFT has to be requestable
+   * @notice Has to be called through an authorized contract.
    * Automatically approve the requester if _tokenKey is valid to allow transferFrom without removing ERC721 compliance.
    * @param _tokenId ID of the NFT to transfer.
    * @param _tokenKey String to encode to check transfer token access.
