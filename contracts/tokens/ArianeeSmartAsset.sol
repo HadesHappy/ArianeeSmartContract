@@ -83,6 +83,33 @@ Pausable
 
   ArianeeWhitelist arianeeWhitelist;
   
+  
+  /**
+   * @dev This emits when a token is hydrated.
+   */
+   event Hydrated(uint256 _tokenId, bytes32 _imprint, string _uri, bytes32 _encryptedInitialKey, uint256 _tokenRecoveryTimestamp, bool _initialKeyIsRequestKey, uint256 _tokenCreation);
+   
+   /**
+    * @dev This emits when a issuer request a NFT recovery.
+    */
+  event RecoveryRequestUpdated(uint256 _tokenId, bool _active);
+  
+  /**
+   * @dev This emits when a NFT is recovered to the issuer.
+   */
+   event TokenRecovered(uint256 _token);
+   
+   /**
+    * @dev This emits when a NFT's URI is udpated.
+    */
+    event TokenURIUpdated(uint256 _tokenId, string URI);
+    
+   /**
+    * @dev This emits when a token access is added.
+    */
+    event tokenAccessAdded(uint256 _tokenId, bytes32 _encryptedTokenKey, bool _enable, uint8 _tokenType);
+     
+  
   /**
    * @dev Check if the msg.sender can operate the NFT.
    * @param _tokenId ID of the NFT to test.
@@ -143,10 +170,11 @@ Pausable
    */
   function hydrateToken(uint256 _tokenId, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey, uint256 _tokenRecoveryTimestamp, bool _initialKeyIsRequestKey) public hasAbility(ABILITY_CREATE_ASSET) whenNotPaused() isOperator(_tokenId, tx.origin) returns(uint256){
     require(!(tokenCreation[_tokenId] > 0), NFT_ALREADY_SET);
-
+    uint256 _tokenCreation = block.timestamp;
+    
     tokenIssuer[_tokenId] = idToOwner[_tokenId];
     encryptedInitialKey[_tokenId] = _encryptedInitialKey;
-    tokenCreation[_tokenId] = block.timestamp;
+    tokenCreation[_tokenId] = _tokenCreation;
     idToImprint[_tokenId] = _imprint;
     tokenRecoveryTimestamp[_tokenId] = _tokenRecoveryTimestamp;
 
@@ -159,6 +187,8 @@ Pausable
     if (_initialKeyIsRequestKey) {
       tokenAccess[_tokenId][1] = _encryptedInitialKey;
     }
+    
+    emit Hydrated(_tokenId, _imprint, _uri, _encryptedInitialKey, _tokenRecoveryTimestamp, _initialKeyIsRequestKey, _tokenCreation);
     
     return rewards[_tokenId];
     
@@ -173,6 +203,8 @@ Pausable
     require(block.timestamp < tokenRecoveryTimestamp[_tokenId]);
     idToApproval[_tokenId] = tokenIssuer[_tokenId];
     _transferFrom(idToOwner[_tokenId], tokenIssuer[_tokenId], _tokenId);
+    
+    emit TokenRecovered(_tokenId);
   }
   
   /**
@@ -183,10 +215,11 @@ Pausable
    */
   function updateRecoveryRequest(uint256 _tokenId, bool _active) public whenNotPaused() isIssuer(_tokenId){
       recoveryRequest[_tokenId] = _active;
+      
+      emit RecoveryRequestUpdated(_tokenId, _active);
   }
   
   /**
-   * TODO change onlyOwner() by dedicated address
    * @dev Valid a recovery request and transfer the NFT to the issuer.
    * @notice Works only if the request is active and if called by the owner of the contract.
    * @param _tokenId Id of the NFT to recover.
@@ -195,6 +228,8 @@ Pausable
       require(recoveryRequest[_tokenId]);
       idToApproval[_tokenId] = owner;
       _transferFrom(idToOwner[_tokenId], tokenIssuer[_tokenId], _tokenId);
+      
+      emit TokenRecovered(_tokenId);
   }
 
   /**
@@ -215,6 +250,8 @@ Pausable
   function updateTokenURI(uint256 _tokenId, string calldata _uri) external isIssuer(_tokenId) whenNotPaused() {
     require(idToOwner[_tokenId] != address(0), NOT_VALID_XCERT);
     idToUri[_tokenId] = _uri;
+    
+    emit TokenURIUpdated(_tokenId, _uri);
   }
 
   /**
@@ -235,14 +272,15 @@ Pausable
    * @param _tokenType Type of token access (0=view, 1=service, 2=transfer).
    * @return true.
    */
-  function addTokenAccess(uint256 _tokenId, bytes32 _encryptedTokenKey, bool _enable, uint8 _tokenType) external isOperator(_tokenId, msg.sender) whenNotPaused() returns (bool) {
+  function addTokenAccess(uint256 _tokenId, bytes32 _encryptedTokenKey, bool _enable, uint8 _tokenType) external isOperator(_tokenId, msg.sender) whenNotPaused() {
     if (_enable) {
       tokenAccess[_tokenId][_tokenType] = _encryptedTokenKey;
     }
     else {
       tokenAccess[_tokenId][_tokenType] = 0x00;
     }
-    return true;
+    
+    emit tokenAccessAdded(_tokenId, _encryptedTokenKey, _enable, _tokenType);
   }
 
   /**
