@@ -136,17 +136,6 @@ Pausable
   }
 
   /**
-   * @dev Batch function for reserveToken.
-   * @param _first First ID to reserve.
-   * @param _last Last ID to reserve.
-   */
-  function reserveTokens(uint256 _first, uint256 _last, address _to, uint256 _rewards) public {
-    for (uint i = _first; i <= _last; i++) {
-      reserveToken(i, _to, _rewards);
-    }
-  }
-
-  /**
    * @dev Reserve a NFT at the given ID.
    * @notice Can only be called by an authorized address.
    * @param _tokenId ID to reserve.
