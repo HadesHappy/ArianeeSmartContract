@@ -32,6 +32,16 @@ Ownable
   mapping(address => bytes32) public addressToImprint;
 
   /**
+   * @dev Mapping from address to URI.
+   */
+  mapping(address => string) public addressToWaitingUri;
+
+  /**
+   * @dev Mapping from address to imprint.
+   */
+  mapping(address => bytes32) public addressToWaitingImprint;
+
+  /**
    * @dev Mapping from address to compromise date.
    */
   mapping(address => uint256) public compromiseDate;
@@ -74,8 +84,13 @@ Ownable
    * @param _imprint Imprint to update
    */
   function updateInformations(string memory _uri, bytes32 _imprint) public isApproved(msg.sender){
-    addressToUri[msg.sender] = _uri;
-    addressToImprint[msg.sender] = _imprint;
+    addressToWaitingUri[msg.sender] = _uri;
+    addressToWaitingImprint[msg.sender] = _imprint;
+  }
+  
+  function validateInformation(address _identity) public onlyOwner(){
+      addressToUri[_identity] = addressToWaitingUri[_identity];
+      addressToImprint[_identity] =  addressToWaitingImprint[_identity];
   }
 
   /**
