@@ -46,6 +46,10 @@ Ownable
    */
   mapping(address => uint256) public compromiseDate;
 
+  /**
+   * 
+   */
+   address[] public addressListing;
 
   constructor() public{
     name = "Arianee Identity";
@@ -65,8 +69,10 @@ Ownable
    * @notice Can only be called by the owner, allow an address to create/update his URI and Imprint.
    * @param _newIdentity Address to authorize.
    */
-  function addAddressToApprovedList(address _newIdentity) public onlyOwner(){
+  function addAddressToApprovedList(address _newIdentity) public onlyOwner() returns (uint256){
     approvedList[_newIdentity] = true;
+    uint256 _addressId = addressListing.push(_newIdentity);
+    return _addressId;
   }
   
  /**
