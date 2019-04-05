@@ -56,6 +56,111 @@ ganache-cli --port 8546
 truffle test
 ```
 
+## Specification
+
+```solidity
+  pragma solidity ^0.5.1;
+  
+  interface ArianeeSmartContract{
+    /**
+     * @dev This emits when a token is hydrated.
+     */
+     event Hydrated(uint256 _tokenId, bytes32 _imprint, string _uri, bytes32 _encryptedInitialKey, uint256 _tokenRecoveryTimestamp, bool _initialKeyIsRequestKey, uint256 _tokenCreation);
+     
+    /**
+     * @dev This emits when a issuer request a NFT recovery.
+     */
+     event RecoveryRequestUpdated(uint256 _tokenId, bool _active);
+    
+     /**
+      * @dev This emits when a NFT is recovered to the issuer.
+      */
+      event TokenRecovered(uint256 _token);
+     
+     /**
+      * @dev This emits when a NFT's URI is udpated.
+      */
+      event TokenURIUpdated(uint256 _tokenId, string URI);
+      
+     /**
+      * @dev This emits when a token access is added.
+      */
+      event tokenAccessAdded(uint256 _tokenId, bytes32 _encryptedTokenKey, bool _enable, uint8 _tokenType);
+      
+     /**
+      * @dev Reserve a NFT at the given ID.
+      * @notice Can only be called by an authorized address.
+      * @param _tokenId ID to reserve.
+      * @param _to receiver of the token.
+      * @param _rewards total rewards of this NFT.
+      */
+      function reserveToken(uint256 _tokenId, address _to, uint256 _rewards) public;
+      
+     /**
+      * @dev Specify information on a reserved NFT.
+      * @notice Can only be called once and by an NFT's operator.
+      * @param _tokenId ID of the NFT to modify.
+      * @param _imprint Proof of the certification.
+      * @param _uri URI of the JSON certification.
+      * @param _encryptedInitialKey Initial encrypted key.
+      * @param _tokenRecoveryTimestamp Limit date for the issuer to be able to transfer back the NFT.
+      * @param _initialKeyIsRequestKey If true set initial key as request key.
+      */
+      function hydrateToken(uint256 _tokenId, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey, uint256 _tokenRecoveryTimestamp, bool _initialKeyIsRequestKey) public return(uint256);
+        
+      /**
+       * @dev Recover the NFT to the issuer.
+       * @notice Works only if called by the issuer and if called before the token Recovery Timestamp of the NFT.
+       * @param _tokenId ID of the NFT to recover.
+       */
+       function recoverTokenToIssuer(uint256 _tokenId) public whenNotPaused() isIssuer(_tokenId);
+          
+     /**
+      * @dev Update a recovery request (doesn't transfer the NFT).
+      * @notice Works only if called by the issuer.
+      * @param _tokenId ID of the NFT to recover.
+      * @param _active boolean to active or unactive the request.
+      */
+      function updateRecoveryRequest(uint256 _tokenId, bool _active) public;
+            
+      /**
+       * @dev Valid a recovery request and transfer the NFT to the issuer.
+       * @notice Works only if the request is active and if called by the owner of the contract.
+       * @param _tokenId Id of the NFT to recover.
+       */
+       function validRecoveryRequest(uint256 _tokenId) public;
+      
+      /**
+       * @dev External function to update the tokenURI.
+       * @notice Can only be called by the NFT's issuer.
+       * @param _tokenId ID of the NFT to edit.
+       * @param _uri New URI for the certificate.
+       */
+       function updateTokenURI(uint256 _tokenId, string calldata _uri) external;
+      
+      /**
+       * @dev Add a token access to a NFT.
+       * @notice can only be called by an NFT's operator.
+       * @param _tokenId ID of the NFT.
+       * @param _encryptedTokenKey Encoded token access to add.
+       * @param _enable Enable or disable the token access.
+       * @param _tokenType Type of token access (0=view, 1=service, 2=transfer).
+       * @return true.
+       */
+       function addTokenAccess(uint256 _tokenId, bytes32 _encryptedTokenKey, bool _enable, uint8 _tokenType) external;
+      
+     /**
+      * @dev Transfers the ownership of a NFT to another address
+      * @notice Requires the msg sender to have the correct tokenKey and NFT has to be requestable.
+      * Automatically approve the requester if _tokenKey is valid to allow transferFrom without removing ERC721 compliance.
+      * @param _tokenId ID of the NFT to transfer.
+      * @param _tokenKey String to encode to check transfer token access.
+      * @param _keepRequestToken If false erase the access token of the NFT.
+      * @return total rewards of this NFT.
+      */
+      function requestToken(uint256 _tokenId, string memory _tokenKey, bool _keepRequestToken) public;
+    }
+```
 
 ## Playground
 
