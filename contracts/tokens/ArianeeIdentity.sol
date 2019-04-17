@@ -137,6 +137,7 @@ Ownable
   */
   function removeAddressFromApprovedList(address _identity) public onlyOwner(){
       approvedList[_identity] = false;
+      emit AddressApprovedRemoved(_identity);
   }
 
   /**
@@ -147,11 +148,17 @@ Ownable
   function updateInformations(string memory _uri, bytes32 _imprint) public isApproved(msg.sender){
     addressToWaitingUri[msg.sender] = _uri;
     addressToWaitingImprint[msg.sender] = _imprint;
+    emit URIUpdated(msg.sender, _uri, _imprint);
   }
   
   function validateInformation(address _identity) public onlyOwner(){
       addressToUri[_identity] = addressToWaitingUri[_identity];
       addressToImprint[_identity] =  addressToWaitingImprint[_identity];
+      
+      emit URIValidate(_identity, addressToWaitingUri[_identity], addressToWaitingImprint[_identity]);
+      
+      delete addressToWaitingUri[_identity];
+      delete addressToWaitingImprint[_identity];
   }
 
   /**
@@ -162,6 +169,7 @@ Ownable
    */
   function updateCompromiseDate(address _identity, uint256 _compromiseDate) public onlyOwner(){
     compromiseDate[_identity] = _compromiseDate;
+    emit IdentityCompromised(_identity, _compromiseDate);
   }
 
   /**
