@@ -13,6 +13,10 @@ contract ArianeeWhitelist {
   function addWhitelistedAddress(uint256 _tokenId, address _address) public;
 }
 
+contract ArianeeStore{
+    function canTransfer(address _to,address _from,uint256 _tokenId) public returns(bool);
+}
+
 contract ArianeeSmartAsset is
 NFTokenMetadataEnumerable,
 Abilitable,
@@ -52,11 +56,6 @@ Pausable
   /**
    * @dev Mapping from token id to lost flag.
    */
-  mapping(uint256 => bool) public tokenLost;
-
-  /**
-   * @dev Mapping from token id to lost flag.
-   */
   mapping(uint256 => uint256) public tokenRecoveryTimestamp;
 
   /**
@@ -68,6 +67,11 @@ Pausable
    * @dev Mapping from token id to total rewards for this NFT.
    */
   mapping(uint256=>uint256) public rewards;
+  
+  /**
+   * @dev This emits when a new address is set.
+   */
+  event SetAddress(string _addressType, address _newAddress);
 
 
   uint8 constant ABILITY_CREATE_ASSET = 1;
@@ -82,7 +86,6 @@ Pausable
   string constant NOT_OWNER_OR_OPERATOR = "007004";
 
   ArianeeWhitelist arianeeWhitelist;
-
 
   /**
    * @dev This emits when a token is hydrated.
@@ -134,6 +137,17 @@ Pausable
     nftSymbol = "AriaSA";
     arianeeWhitelist = ArianeeWhitelist(address(_arianeeWhitelistAddress));
   }
+  
+  ArianeeStore store;
+  
+  /**
+   * @dev Change address of the store infrastructure.
+   * @param _storeAddress new address of the store.
+   */
+   function setStoreAddress(address _storeAddress) public onlyOwner(){
+      store = ArianeeStore(address(_storeAddress));
+      emit SetAddress("storeAddress", _storeAddress);
+   }
 
   /**
    * @dev Reserve a NFT at the given ID.
@@ -170,8 +184,6 @@ Pausable
     tokenRecoveryTimestamp[_tokenId] = _tokenRecoveryTimestamp;
 
     idToUri[_tokenId] = _uri;
-
-    tokenLost[_tokenId] = false;
 
     arianeeWhitelist.addWhitelistedAddress(_tokenId, idToOwner[_tokenId]);
 
@@ -329,18 +341,9 @@ Pausable
    */
 
   function _transferFrom(address _to, address _from, uint256 _tokenId) internal {
+    require(store.canTransfer(_to, _from, _tokenId));
     super._transferFrom(_to, _from, _tokenId);
     arianeeWhitelist.addWhitelistedAddress(_tokenId, _to);
-  }
-
-
-  /**
-   * @dev Set a NFT as lost.
-   * @param _tokenId  ID of the token to set lost.
-   * @param _isLost Boolean to set the token lost or not.
-   */
-  function setTokenLost(uint256 _tokenId, bool _isLost) public whenNotPaused() isOperator(_tokenId, msg.sender) {
-    tokenLost[_tokenId] = _isLost;
   }
 
 }
