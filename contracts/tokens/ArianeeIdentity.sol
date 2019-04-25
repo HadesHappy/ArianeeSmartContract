@@ -19,37 +19,37 @@ Ownable
   /**
    * @dev Mapping from address to approvedList boolean
    */
-  mapping(address => bool) public approvedList;
+  mapping(address => bool) internal approvedList;
 
   /**
    * @dev Mapping from address to URI.
    */
-  mapping(address => string) public addressToUri;
+  mapping(address => string) internal addressToUri;
 
   /**
    * @dev Mapping from address to imprint.
    */
-  mapping(address => bytes32) public addressToImprint;
+  mapping(address => bytes32) internal addressToImprint;
 
   /**
    * @dev Mapping from address to URI.
    */
-  mapping(address => string) public addressToWaitingUri;
+  mapping(address => string) internal addressToWaitingUri;
 
   /**
    * @dev Mapping from address to imprint.
    */
-  mapping(address => bytes32) public addressToWaitingImprint;
+  mapping(address => bytes32) internal addressToWaitingImprint;
 
   /**
    * @dev Mapping from address to compromise date.
    */
-  mapping(address => uint256) public compromiseDate;
+  mapping(address => uint256) internal compromiseDate;
 
   /**
    * @dev Mapping from addressId to address.
    */
-   mapping(bytes4=>address) public addressListing;
+   mapping(bytes4=>address) internal addressListing;
    
    /**
     * @dev This emits when a new address is approved.
@@ -162,8 +162,8 @@ Ownable
   }
 
   /**
-   * @dev Add a compromise date to an identity.
-   * @notice Can only be called by the contract's owner.
+   * @notice Add a compromise date to an identity.
+   * @dev Can only be called by the contract's owner.
    * @param _identity address compromise
    * @param _compromiseDate compromise date
    */
@@ -173,12 +173,68 @@ Ownable
   }
 
   /**
-   * @dev Get a token URI
-   * @param _address address of the identity
+   * @notice Check if an address is approved.
+   * @param _identity address of the identity.
+   * @return true if approved.
    */
-  function tokenURI(address _address) external view returns (string memory){
-    return addressToUri[_address];
+  function addressIsApproved(address _identity) external view returns (bool _isApproved){
+      _isApproved = approvedList[_identity];
   }
+  
+  /**
+   * @notice The uri of a given identity.
+   * @param _identity address of the identity.
+   * @return the uri.
+   */
+  function addressURI(address _identity) external view returns (string memory _uri){
+      _uri = addressToUri[_identity];
+  }
+
+  /**
+   * @notice The imprint for a given identity.
+   * @param _identity address of the identity.
+   * @return true if approved.
+   */
+  function addressImprint(address _identity) external view returns (bytes32 _imprint){
+      _imprint = addressToImprint[_identity];
+  }
+
+  /**
+   * @notice The waiting uri for a given identity.
+   * @param _identity address of the identity.
+   * @return the waiting Uri.
+   */
+  function waitingURI(address _identity) external view returns(string memory _waitingUri){
+      _waitingUri = addressToWaitingUri[_identity];
+  }
+
+  /**
+   * @notice The waiting imprint for a given identity.
+   * @param _identity address of the identity.
+   * @return the waiting imprint.
+   */
+  function waitingImprint(address _identity) external view returns(bytes32 _waitingImprint){
+      _waitingImprint = addressToWaitingImprint[_identity];
+  }
+  
+  /**
+   * @notice The compromise date for a given identity.
+   * @param _identity address of the identity.
+   * @return the waiting Uri.
+   */
+  function compromiseIdentityDate(address _identity) external view returns(uint256 _compromiseDate){
+      _compromiseDate = compromiseDate[_identity];
+  }
+
+  /**
+   * @notice The address for a given short id.
+   * @param _id short id of the identity
+   * @return the address of the identity.
+   */
+  function addressFromId(bytes4 _id) external view returns(address _identity){
+      _identity = addressListing[_id];
+  }
+
   
 
 }
