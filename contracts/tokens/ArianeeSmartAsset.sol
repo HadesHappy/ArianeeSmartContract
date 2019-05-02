@@ -137,7 +137,7 @@ Pausable
   {
     nftName = "ArianeeSmartAsset";
     nftSymbol = "AriaSA";
-    arianeeWhitelist = ArianeeWhitelist(address(_arianeeWhitelistAddress));
+    setWhitelistAddress(_arianeeWhitelistAddress);
   }
   
   /**
@@ -147,6 +147,15 @@ Pausable
   function setStoreAddress(address _storeAddress) public onlyOwner(){
     store = ArianeeStore(address(_storeAddress));
     emit SetAddress("storeAddress", _storeAddress);
+  }
+  
+  /**
+   * @dev Change address of the whitelist.
+   * @param _whitelistAddres new address of the whitelist.
+   */
+  function setWhitelistAddress(address _whitelistAddres) public onlyOwner(){
+    arianeeWhitelist = ArianeeWhitelist(address(_whitelistAddres));
+    emit SetAddress("whitelistAddress", _whitelistAddres);
   }
 
   /**
