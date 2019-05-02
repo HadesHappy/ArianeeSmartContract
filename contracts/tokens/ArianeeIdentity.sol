@@ -49,12 +49,12 @@ Ownable
   /**
    * @dev Mapping from addressId to address.
    */
-  mapping(bytes4=>address) internal addressListing;
+  mapping(bytes3=>address) internal addressListing;
    
   /**
    * @dev This emits when a new address is approved.
    */
-  event AddressApprovedAdded(address _newIdentity, bytes4 _addressId);
+  event AddressApprovedAdded(address _newIdentity, bytes3 _addressId);
    
   /**
    * @dev This emits when an address is removed from approvedList.
@@ -106,11 +106,11 @@ Ownable
   }
 
    /**
-    * @dev Convert a bytes in bytes4.
+    * @dev Convert a bytes in bytes3.
     * @param _inBytes input bytes.
-    * @return output bytes4.
+    * @return output bytes3.
     */
-  function _convertBytesToBytes4(bytes memory _inBytes) internal pure returns (bytes4 outBytes4) {
+  function _convertBytesToBytes3(bytes memory _inBytes) internal pure returns (bytes3 outBytes4) {
     if (_inBytes.length == 0) {
         return 0x0;
     }
@@ -124,14 +124,14 @@ Ownable
    * @dev Add a new address to approvedList
    * @notice Can only be called by the owner, allow an address to create/update his URI and Imprint.
    * @param _newIdentity Address to authorize.
-   * @return Id for address in bytes4.
+   * @return Id for address in bytes3.
    */
-  function addAddressToApprovedList(address _newIdentity) public onlyOwner() returns (bytes4){
+  function addAddressToApprovedList(address _newIdentity) public onlyOwner() returns (bytes3){
     approvedList[_newIdentity] = true;
     
     bytes memory _bytesAddress = abi.encodePacked(_newIdentity);
-    bytes memory _addressIdDyn = _getSlice(1,6,_bytesAddress);
-    bytes4 _addressId = _convertBytesToBytes4(_addressIdDyn);
+    bytes memory _addressIdDyn = _getSlice(1,4,_bytesAddress);
+    bytes3 _addressId = _convertBytesToBytes3(_addressIdDyn);
     
     addressListing[_addressId] = _newIdentity;
     
@@ -247,7 +247,7 @@ Ownable
    * @param _id short id of the identity
    * @return the address of the identity.
    */
-  function addressFromId(bytes4 _id) external view returns(address _identity){
+  function addressFromId(bytes3 _id) external view returns(address _identity){
       _identity = addressListing[_id];
   }
 
