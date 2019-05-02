@@ -50,6 +50,9 @@ Ownable
    * @dev Mapping from addressId to address.
    */
   mapping(bytes3=>address) internal addressListing;
+  
+  address bouncerAddress;
+  address validatorAddress;
    
   /**
    * @dev This emits when a new address is approved.
@@ -75,10 +78,18 @@ Ownable
    * @dev This emits when an identity change is validated by the contract owner.
    */
   event IdentityCompromised(address _identity, uint256 _compromiseDate);
+  
+  /**
+   * @dev This emits when a new address is set.
+   */
+  event SetAddress(string _addressType, address _newAddress);
    
-  constructor() public{
+   
+  constructor(address _newBouncerAddress, address _newValidatorAddress) public{
     name = "Arianee Identity";
     symbol = "AriaI";
+    updateBouncerAddress(_newBouncerAddress);
+    updateValidatorAddress(_newValidatorAddress);
   }
 
   /**
@@ -122,11 +133,13 @@ Ownable
   
   /**
    * @dev Add a new address to approvedList
-   * @notice Can only be called by the owner, allow an address to create/update his URI and Imprint.
+   * @notice allow an address to create/update his URI and Imprint.
+   * @notice Can only be called by the bouncer.
    * @param _newIdentity Address to authorize.
    * @return Id for address in bytes3.
    */
-  function addAddressToApprovedList(address _newIdentity) public onlyOwner() returns (bytes3){
+  function addAddressToApprovedList(address _newIdentity) public returns (bytes3){
+    require(msg.sender == bouncerAddress);
     approvedList[_newIdentity] = true;
     
     bytes memory _bytesAddress = abi.encodePacked(_newIdentity);
@@ -142,10 +155,11 @@ Ownable
 
   /**
    * @dev Remove an address from approvedList.
-   * @notice Can only be called by the owner.
+   * @notice Can only be called by the bouncer.
    * @param _identity to delete from the approvedList.
    */
-  function removeAddressFromApprovedList(address _identity) public onlyOwner(){
+  function removeAddressFromApprovedList(address _identity) public {
+    require(msg.sender == bouncerAddress);
     approvedList[_identity] = false;
     emit AddressApprovedRemoved(_identity);
   }
@@ -164,10 +178,11 @@ Ownable
   
   /**
    * @dev Validate waiting informations provided by the identity.
-   * @notice Can only be called by the owner of the contract.
+   * @notice Can only be called by the validator.
    * @param _identity address to be validated.
    */
-  function validateInformation(address _identity) public onlyOwner(){
+  function validateInformation(address _identity) public {
+    require(msg.sender == validatorAddress);
     addressToUri[_identity] = addressToWaitingUri[_identity];
     addressToImprint[_identity] =  addressToWaitingImprint[_identity];
 
@@ -179,15 +194,34 @@ Ownable
 
   /**
    * @notice Add a compromise date to an identity.
-   * @dev Can only be called by the contract's owner.
+   * @dev Can only be called by the bouncer.
    * @param _identity address compromise
    * @param _compromiseDate compromise date
    */
-  function updateCompromiseDate(address _identity, uint256 _compromiseDate) public onlyOwner(){
+  function updateCompromiseDate(address _identity, uint256 _compromiseDate) public{
+    require(msg.sender == bouncerAddress);
     compromiseDate[_identity] = _compromiseDate;
     emit IdentityCompromised(_identity, _compromiseDate);
   }
-
+  
+  /**
+   * @dev Change address of the bouncer.
+   * @param _newBouncerAddress new address of the bouncer.
+   */
+  function updateBouncerAddress(address _newBouncerAddress) public onlyOwner(){
+    bouncerAddress = _newBouncerAddress;
+    emit SetAddress("bouncerAddress", _newBouncerAddress);
+  }
+  
+  /**
+   * @dev Change address of the validator.
+   * @param _newValidatorAddress new address of the validator.
+   */
+  function updateValidatorAddress(address _newValidatorAddress) public onlyOwner(){
+    validatorAddress = _newValidatorAddress;
+    emit SetAddress("validatorAddress", _newValidatorAddress);
+  }
+  
   /**
    * @notice Check if an address is approved.
    * @param _identity address of the identity.
