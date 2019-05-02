@@ -110,13 +110,13 @@ Ownable
     * @param _inBytes input bytes.
     * @return output bytes3.
     */
-  function _convertBytesToBytes3(bytes memory _inBytes) internal pure returns (bytes3 outBytes4) {
+  function _convertBytesToBytes3(bytes memory _inBytes) internal pure returns (bytes3 outBytes3) {
     if (_inBytes.length == 0) {
         return 0x0;
     }
 
     assembly {
-        outBytes4 := mload(add(_inBytes, 32))
+        outBytes3 := mload(add(_inBytes, 32))
     }
   }
   
