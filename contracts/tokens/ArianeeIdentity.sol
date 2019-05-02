@@ -91,21 +91,33 @@ Ownable
   }
 
 
-  function _getSlice(uint256 begin, uint256 end, bytes memory text) public pure returns (bytes memory) {
-    bytes memory a = new bytes(end-begin+1);
-    for(uint i=0;i<=end-begin;i++){
-        a[i] = bytes(text)[i+begin-1];
+  /**
+   * @dev Slice text.
+   * @param _begin first byte to return (first is 1).
+   * @param _end last param to return.
+   * @param _text bytes to slice.
+   * @return text sliced.
+   */
+  function _getSlice(uint256 _begin, uint256 _end, bytes memory _text) internal pure returns (bytes memory) {
+    bytes memory _a = new bytes(_end-_begin+1);
+    for(uint i=0;i<=_end-_begin;i++){
+        _a[i] = bytes(_text)[i+_begin-1];
     }
-    return bytes(a);    
+    return bytes(_a);    
   }
 
-  function convertBytesToBytes4(bytes memory inBytes) internal pure returns (bytes4 outBytes4) {
-    if (inBytes.length == 0) {
+   /**
+    * @dev Convert a bytes in bytes4.
+    * @param _inBytes input bytes.
+    * @return output bytes4.
+    */
+  function _convertBytesToBytes4(bytes memory _inBytes) internal pure returns (bytes4 outBytes4) {
+    if (_inBytes.length == 0) {
         return 0x0;
     }
 
     assembly {
-        outBytes4 := mload(add(inBytes, 32))
+        outBytes4 := mload(add(_inBytes, 32))
     }
   }
   
@@ -121,7 +133,7 @@ Ownable
     
     bytes memory _bytesAddress = abi.encodePacked(_newIdentity);
     bytes memory _addressIdDyn = _getSlice(1,6,_bytesAddress);
-    bytes4 _addressId = convertBytesToBytes4(_addressIdDyn);
+    bytes4 _addressId = _convertBytesToBytes4(_addressIdDyn);
     
     addressListing[_addressId] = _newIdentity;
     
@@ -131,7 +143,7 @@ Ownable
   }
 
  /**
-  * @dev remove an address from approvedList.
+  * @dev Remove an address from approvedList.
   * @notice Can only be called by the owner.
   * @param _identity to delete from the approvedList.
   */
@@ -151,6 +163,12 @@ Ownable
     emit URIUpdated(msg.sender, _uri, _imprint);
   }
   
+  
+  /**
+   * @dev Validate waiting informations provided by the identity.
+   * @notice Can only be called by the owner of the contract.
+   * @param _identity address to be validated.
+   */
   function validateInformation(address _identity) public onlyOwner(){
       addressToUri[_identity] = addressToWaitingUri[_identity];
       addressToImprint[_identity] =  addressToWaitingImprint[_identity];
