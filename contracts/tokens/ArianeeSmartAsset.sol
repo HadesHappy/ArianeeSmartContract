@@ -433,6 +433,15 @@ Pausable
       require(idToOwner[_tokenId] != address(0), NOT_VALID_NFT);
       _recoveryRequest = recoveryRequest[_tokenId];
   }  
+  
+  /**
+   * @notice The rewards for a given Token ID.
+   * @param _tokenId Id for which we want the rewards.
+   * @return Rewards of _tokenId.
+   */
+  function getRewards(uint256 _tokenId) external view returns(uint256){
+      return rewards[_tokenId];
+  }
 
 }
 
