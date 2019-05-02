@@ -144,10 +144,10 @@ Pausable
    * @dev Change address of the store infrastructure.
    * @param _storeAddress new address of the store.
    */
-   function setStoreAddress(address _storeAddress) public onlyOwner(){
-      store = ArianeeStore(address(_storeAddress));
-      emit SetAddress("storeAddress", _storeAddress);
-   }
+  function setStoreAddress(address _storeAddress) public onlyOwner(){
+    store = ArianeeStore(address(_storeAddress));
+    emit SetAddress("storeAddress", _storeAddress);
+  }
 
   /**
    * @dev Reserve a NFT at the given ID.
@@ -274,7 +274,6 @@ Pausable
       else{
           return string(abi.encodePacked(uriBase, _uint2str(_tokenId)));
       }
-    
   }
 
   /**
@@ -425,7 +424,6 @@ Pausable
       require(idToOwner[_tokenId] != address(0), NOT_VALID_NFT);
       _recoveryRequest = recoveryRequest[_tokenId];
   }  
-  
 
 }
 

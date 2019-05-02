@@ -49,32 +49,32 @@ Ownable
   /**
    * @dev Mapping from addressId to address.
    */
-   mapping(bytes4=>address) internal addressListing;
+  mapping(bytes4=>address) internal addressListing;
    
-   /**
-    * @dev This emits when a new address is approved.
-    */
-   event AddressApprovedAdded(address _newIdentity, bytes4 _addressId);
+  /**
+   * @dev This emits when a new address is approved.
+   */
+  event AddressApprovedAdded(address _newIdentity, bytes4 _addressId);
    
-   /**
-    * @dev This emits when an address is removed from approvedList.
-    */
-   event AddressApprovedRemoved(address _newIdentity);
+  /**
+   * @dev This emits when an address is removed from approvedList.
+   */
+  event AddressApprovedRemoved(address _newIdentity);
    
-   /**
-    * @dev This emits when a new address is approved.
-    */
-   event URIUpdated(address _identity, string _uri, bytes32 _imprint);
-   
-   /**
-    * @dev This emits when an identity change its URI and Imprint.
-    */
-   event URIValidate(address _identity, string _uri, bytes32 _imprint);
-   
-   /**
-    * @dev This emits when an identity change is validated by the contract owner.
-    */
-   event IdentityCompromised(address _identity, uint256 _compromiseDate);
+  /**
+   * @dev This emits when a new address is approved.
+   */
+  event URIUpdated(address _identity, string _uri, bytes32 _imprint);
+
+  /**
+   * @dev This emits when an identity change its URI and Imprint.
+   */
+  event URIValidate(address _identity, string _uri, bytes32 _imprint);
+
+  /**
+   * @dev This emits when an identity change is validated by the contract owner.
+   */
+  event IdentityCompromised(address _identity, uint256 _compromiseDate);
    
   constructor() public{
     name = "Arianee Identity";
@@ -89,7 +89,6 @@ Ownable
     require(approvedList[_identity]);
     _;
   }
-
 
   /**
    * @dev Slice text.
@@ -121,7 +120,6 @@ Ownable
     }
   }
   
-  
   /**
    * @dev Add a new address to approvedList
    * @notice Can only be called by the owner, allow an address to create/update his URI and Imprint.
@@ -142,14 +140,14 @@ Ownable
     return _addressId;
   }
 
- /**
-  * @dev Remove an address from approvedList.
-  * @notice Can only be called by the owner.
-  * @param _identity to delete from the approvedList.
-  */
+  /**
+   * @dev Remove an address from approvedList.
+   * @notice Can only be called by the owner.
+   * @param _identity to delete from the approvedList.
+   */
   function removeAddressFromApprovedList(address _identity) public onlyOwner(){
-      approvedList[_identity] = false;
-      emit AddressApprovedRemoved(_identity);
+    approvedList[_identity] = false;
+    emit AddressApprovedRemoved(_identity);
   }
 
   /**
@@ -170,13 +168,13 @@ Ownable
    * @param _identity address to be validated.
    */
   function validateInformation(address _identity) public onlyOwner(){
-      addressToUri[_identity] = addressToWaitingUri[_identity];
-      addressToImprint[_identity] =  addressToWaitingImprint[_identity];
-      
-      emit URIValidate(_identity, addressToWaitingUri[_identity], addressToWaitingImprint[_identity]);
-      
-      delete addressToWaitingUri[_identity];
-      delete addressToWaitingImprint[_identity];
+    addressToUri[_identity] = addressToWaitingUri[_identity];
+    addressToImprint[_identity] =  addressToWaitingImprint[_identity];
+
+    emit URIValidate(_identity, addressToWaitingUri[_identity], addressToWaitingImprint[_identity]);
+
+    delete addressToWaitingUri[_identity];
+    delete addressToWaitingImprint[_identity];
   }
 
   /**
@@ -252,8 +250,6 @@ Ownable
   function addressFromId(bytes4 _id) external view returns(address _identity){
       _identity = addressListing[_id];
   }
-
-  
 
 }
 
