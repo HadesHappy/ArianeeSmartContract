@@ -62,7 +62,11 @@ Pausable
       uint256 tokenRecoveryTimestamp;
   }
   
-  uint8 constant ABILITY_CREATE_ASSET = 1;
+  
+  /**
+   * @dev Ability to create and hydrate NFT.
+   */
+  uint8 constant ABILITY_CREATE_ASSET = 2;
 
   /**
    * @dev Error constants.
