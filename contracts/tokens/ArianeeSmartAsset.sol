@@ -77,7 +77,11 @@ Pausable
   string constant NFT_ALREADY_SET = "007006";
   string constant NOT_OWNER_OR_OPERATOR = "007004";
 
+  /**
+   * Interface for all the connected contracts.
+   */
   ArianeeWhitelist arianeeWhitelist;
+  ArianeeStore store;
 
   /**
    * @dev This emits when a token is hydrated.
@@ -115,6 +119,12 @@ Pausable
     _;
   }
 
+  /**
+   * @dev Check if an operator is valid for a given NFT.
+   * @param _tokenId nft to check.
+   * @param _operator operator to check.
+   * @return true if operator is valid.
+   */
   function canOperate(uint256 _tokenId, address _operator) view public returns (bool){
     address tokenOwner = idToOwner[_tokenId];
     return tokenOwner == _operator || ownerToOperators[tokenOwner][_operator];
@@ -129,8 +139,6 @@ Pausable
     nftSymbol = "AriaSA";
     arianeeWhitelist = ArianeeWhitelist(address(_arianeeWhitelistAddress));
   }
-  
-  ArianeeStore store;
   
   /**
    * @dev Change address of the store infrastructure.
@@ -189,7 +197,6 @@ Pausable
     emit Hydrated(_tokenId, _imprint, _uri, _encryptedInitialKey, _tokenRecoveryTimestamp, _initialKeyIsRequestKey, _tokenCreation);
 
     return rewards[_tokenId];
-
   }
 
   /**
@@ -324,7 +331,7 @@ Pausable
    * @dev Transfers the ownership of a NFT to another address
    * @notice Requires to send the correct tokenKey and the NFT has to be requestable
    * @notice Has to be called through an authorized contract.
-   * Automatically approve the requester if _tokenKey is valid to allow transferFrom without removing ERC721 compliance.
+   * @notice Automatically approve the requester if _tokenKey is valid to allow transferFrom without removing ERC721 compliance.
    * @param _tokenId ID of the NFT to transfer.
    * @param _tokenKey String to encode to check transfer token access.
    * @param _keepRequestToken If false erase the access token of the NFT.
@@ -343,8 +350,8 @@ Pausable
 
   /**
    * @dev Legacy function of TransferFrom, add the new owner as whitelisted for the message.
+   * @notice Require the store to approve the transfer.
    */
-
   function _transferFrom(address _to, address _from, uint256 _tokenId) internal {
     require(store.canTransfer(_to, _from, _tokenId));
     super._transferFrom(_to, _from, _tokenId);
