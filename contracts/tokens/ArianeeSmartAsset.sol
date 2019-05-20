@@ -182,21 +182,21 @@ Pausable
    * @param _tokenRecoveryTimestamp Limit date for the issuer to be able to transfer back the NFT.
    * @param _initialKeyIsRequestKey If true set initial key as request key.
    */
-  function hydrateToken(uint256 _tokenId, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey, uint256 _tokenRecoveryTimestamp, bool _initialKeyIsRequestKey) public hasAbility(ABILITY_CREATE_ASSET) whenNotPaused() isOperator(_tokenId, tx.origin) returns(uint256){
+  function hydrateToken(uint256 _tokenId, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey, uint256 _tokenRecoveryTimestamp, bool _initialKeyIsRequestKey, address _owner) public hasAbility(ABILITY_CREATE_ASSET) whenNotPaused() isOperator(_tokenId, _owner) returns(uint256){
     require(!(certificate[_tokenId].tokenCreationDate > 0), NFT_ALREADY_SET);
     uint256 _tokenCreation = block.timestamp;
     tokenAccess[_tokenId][0] = _encryptedInitialKey;
     idToImprint[_tokenId] = _imprint;
     idToUri[_tokenId] = _uri;
     
-    arianeeWhitelist.addWhitelistedAddress(_tokenId, idToOwner[_tokenId]);
+    arianeeWhitelist.addWhitelistedAddress(_tokenId, _owner);
 
     if (_initialKeyIsRequestKey) {
       tokenAccess[_tokenId][1] = _encryptedInitialKey;
     }
     
     Cert memory _cert = Cert({
-             tokenIssuer : idToOwner[_tokenId],
+             tokenIssuer : _owner,
              tokenCreationDate: _tokenCreation,
              tokenRecoveryTimestamp :_tokenRecoveryTimestamp
             });
