@@ -172,6 +172,7 @@ Ownable
   function updateInformations(string memory _uri, bytes32 _imprint) public isApproved(msg.sender){
     addressToWaitingUri[msg.sender] = _uri;
     addressToWaitingImprint[msg.sender] = _imprint;
+    
     emit URIUpdated(msg.sender, _uri, _imprint);
   }
   
@@ -181,8 +182,9 @@ Ownable
    * @notice Can only be called by the validator.
    * @param _identity address to be validated.
    */
-  function validateInformation(address _identity) public {
+  function validateInformation(address _identity, bytes32 _imprintToValidate) public {
     require(msg.sender == validatorAddress);
+    require(addressToWaitingImprint[_identity] == _imprintToValidate);
     addressToUri[_identity] = addressToWaitingUri[_identity];
     addressToImprint[_identity] =  addressToWaitingImprint[_identity];
 
