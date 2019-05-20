@@ -343,14 +343,15 @@ Pausable
    * @param _tokenId ID of the NFT to transfer.
    * @param _tokenKey String to encode to check transfer token access.
    * @param _keepRequestToken If false erase the access token of the NFT.
+   * @param _newOwner Address of the new owner of the NFT.
    * @return total rewards of this NFT.
    */
-  function requestToken(uint256 _tokenId, string memory _tokenKey, bool _keepRequestToken) public hasAbility(ABILITY_CREATE_ASSET) canRequest(_tokenId, _tokenKey) whenNotPaused() returns(uint256){
+  function requestToken(uint256 _tokenId, string memory _tokenKey, bool _keepRequestToken, address _newOwner) public hasAbility(ABILITY_CREATE_ASSET) canRequest(_tokenId, _tokenKey) whenNotPaused() returns(uint256){
     idToApproval[_tokenId] = msg.sender;
     if(!_keepRequestToken){
       tokenAccess[_tokenId][1] = 0x00;
     }
-    _transferFrom(idToOwner[_tokenId], tx.origin, _tokenId);
+    _transferFrom(idToOwner[_tokenId], _newOwner, _tokenId);
     uint256 reward = rewards[_tokenId];
     delete rewards[_tokenId];
     return reward;
