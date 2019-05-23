@@ -143,10 +143,10 @@ Pausable
   
   /**
    * @dev Change the base URI address.
-   * @param _newAddress the new URI base address.
+   * @param _newURIBase the new URI base address.
    */
-  function setUriBase(string memory _newURI) public onlyOwner(){
-      _setUriBase(_newURI);
+  function setUriBase(string memory _newURIBase) public onlyOwner(){
+      _setUriBase(_newURIBase);
   }
   
   /**
