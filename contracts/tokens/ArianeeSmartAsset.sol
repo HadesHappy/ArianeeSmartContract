@@ -138,6 +138,15 @@ Pausable
     nftName = "ArianeeSmartAsset";
     nftSymbol = "AriaSA";
     setWhitelistAddress(_arianeeWhitelistAddress);
+    _setUriBase("https://cert.arianee.org/");
+  }
+  
+  /**
+   * @dev Change the base URI address.
+   * @param _newAddress the new URI base address.
+   */
+  function setUriBase(string memory _newURI) public onlyOwner(){
+      _setUriBase(_newURI);
   }
   
   /**
@@ -329,7 +338,7 @@ Pausable
    * @dev Check if a token access is valid.
    * @param _tokenId ID of the NFT to validate.
    * @param _tokenKey String to encode to check transfer token access.
-   * @param _tokenType Type of token access (0=view, 1=service, 2=transfer).
+   * @param _tokenType Type of token access (0=view, 1=transfer).
    */
   function isTokenValid(uint256 _tokenId, string memory _tokenKey, uint256 _tokenType) public view returns (bool){
     return tokenAccess[_tokenId][_tokenType] != 0x00 && keccak256(abi.encodePacked(_tokenKey)) == tokenAccess[_tokenId][_tokenType];
@@ -356,7 +365,7 @@ Pausable
     delete rewards[_tokenId];
     return reward;
   }
-
+  
   /**
    * @dev Legacy function of TransferFrom, add the new owner as whitelisted for the message.
    * @notice Require the store to approve the transfer.
