@@ -3,6 +3,7 @@ pragma solidity 0.5.1;
 import "@0xcert/ethereum-utils-contracts/src/contracts/permission/abilitable.sol";
 import "@0xcert/ethereum-utils-contracts/src/contracts/permission/ownable.sol";
 import "./Pausable.sol";
+import "./ECDSA.sol";
 
 import "@0xcert/ethereum-erc721-contracts/src/contracts/nf-token-metadata-enumerable.sol";
 
@@ -29,7 +30,7 @@ Pausable
   /**
    * @dev Mapping from token id to Token Access (0=view, 1=transfer).
    */
-  mapping(uint256 => mapping(uint256 => bytes32)) internal tokenAccess;
+  mapping(uint256 => mapping(uint256 => address)) internal tokenAccess;
 
   /**
    * @dev Mapping from token id to TokenImprintUpdate.
@@ -86,7 +87,7 @@ Pausable
   /**
    * @dev This emits when a token is hydrated.
    */
-  event Hydrated(uint256 _tokenId, bytes32 _imprint, string _uri, bytes32 _encryptedInitialKey, uint256 _tokenRecoveryTimestamp, bool _initialKeyIsRequestKey, uint256 _tokenCreation);
+  event Hydrated(uint256 _tokenId, bytes32 _imprint, string _uri, address _encryptedInitialKey, uint256 _tokenRecoveryTimestamp, bool _initialKeyIsRequestKey, uint256 _tokenCreation);
 
   /**
    * @dev This emits when a issuer request a NFT recovery.
@@ -106,7 +107,7 @@ Pausable
   /**
    * @dev This emits when a token access is added.
    */
-  event tokenAccessAdded(uint256 _tokenId, bytes32 _encryptedTokenKey, bool _enable, uint256 _tokenType);
+  event tokenAccessAdded(uint256 _tokenId, address _encryptedTokenKey, bool _enable, uint256 _tokenType);
 
 
   /**
@@ -191,7 +192,7 @@ Pausable
    * @param _tokenRecoveryTimestamp Limit date for the issuer to be able to transfer back the NFT.
    * @param _initialKeyIsRequestKey If true set initial key as request key.
    */
-  function hydrateToken(uint256 _tokenId, bytes32 _imprint, string memory _uri, bytes32 _encryptedInitialKey, uint256 _tokenRecoveryTimestamp, bool _initialKeyIsRequestKey, address _owner) public hasAbility(ABILITY_CREATE_ASSET) whenNotPaused() isOperator(_tokenId, _owner) returns(uint256){
+  function hydrateToken(uint256 _tokenId, bytes32 _imprint, string memory _uri, address _encryptedInitialKey, uint256 _tokenRecoveryTimestamp, bool _initialKeyIsRequestKey, address _owner) public hasAbility(ABILITY_CREATE_ASSET) whenNotPaused() isOperator(_tokenId, _owner) returns(uint256){
     require(!(certificate[_tokenId].tokenCreationDate > 0), NFT_ALREADY_SET);
     uint256 _tokenCreation = block.timestamp;
     tokenAccess[_tokenId][0] = _encryptedInitialKey;
@@ -303,13 +304,13 @@ Pausable
    * @param _tokenType Type of token access (0=view, 1=service, 2=transfer).
    * @return true.
    */
-  function addTokenAccess(uint256 _tokenId, bytes32 _encryptedTokenKey, bool _enable, uint256 _tokenType) external isOperator(_tokenId, msg.sender) whenNotPaused() {
+  function addTokenAccess(uint256 _tokenId, address _encryptedTokenKey, bool _enable, uint256 _tokenType) external isOperator(_tokenId, msg.sender) whenNotPaused() {
       require(_tokenType>0);
     if (_enable) {
       tokenAccess[_tokenId][_tokenType] = _encryptedTokenKey;
     }
     else {
-      tokenAccess[_tokenId][_tokenType] = 0x00;
+      tokenAccess[_tokenId][_tokenType] = address(0);
     }
 
     emit tokenAccessAdded(_tokenId, _encryptedTokenKey, _enable, _tokenType);
@@ -321,18 +322,9 @@ Pausable
    * @return True if the NFT is requestable.
    */
   function isRequestable(uint256 _tokenId) public view returns (bool) {
-    return tokenAccess[_tokenId][1] != 0x00;
+    return tokenAccess[_tokenId][1] != address(0);
   }
 
-  /**
-   * @dev Checks if NFT is requestable with the given token key.
-   * @param _tokenId uint256 ID of the NFT to validate.
-   * @param _tokenKey token key to check.
-   */
-  modifier canRequest(uint256 _tokenId, string memory _tokenKey) {
-    require(isTokenValid(_tokenId, _tokenKey, 1));
-    _;
-  }
 
   /**
    * @dev Check if a token access is valid.
@@ -340,8 +332,8 @@ Pausable
    * @param _tokenKey String to encode to check transfer token access.
    * @param _tokenType Type of token access (0=view, 1=transfer).
    */
-  function isTokenValid(uint256 _tokenId, string memory _tokenKey, uint256 _tokenType) public view returns (bool){
-    return tokenAccess[_tokenId][_tokenType] != 0x00 && keccak256(abi.encodePacked(_tokenKey)) == tokenAccess[_tokenId][_tokenType];
+  function isTokenValid(uint256 _tokenId, bytes32 _tokenKey, uint256 _tokenType, bytes memory _signature) public view returns (bool){
+    return ECDSA.recover(_tokenKey, _signature) ==  tokenAccess[_tokenId][_tokenType];
   }
 
   /**
@@ -355,15 +347,21 @@ Pausable
    * @param _newOwner Address of the new owner of the NFT.
    * @return total rewards of this NFT.
    */
-  function requestToken(uint256 _tokenId, string memory _tokenKey, bool _keepRequestToken, address _newOwner) public hasAbility(ABILITY_CREATE_ASSET) canRequest(_tokenId, _tokenKey) whenNotPaused() returns(uint256){
+  function requestToken(uint256 _tokenId, bytes32 _tokenKey, bool _keepRequestToken, address _newOwner, bytes memory _signature) public hasAbility(ABILITY_CREATE_ASSET) whenNotPaused() returns(uint256 reward, bytes32 message){
+      
+    require(isTokenValid(_tokenId, _tokenKey, 1, _signature));
+    bytes32 message = keccak256(abi.encode(_tokenId, _newOwner));
+    require(ECDSA.toEthSignedMessageHash(message) == _tokenKey);
+    
     idToApproval[_tokenId] = msg.sender;
+    
     if(!_keepRequestToken){
-      tokenAccess[_tokenId][1] = 0x00;
+      tokenAccess[_tokenId][1] = address(0);
     }
     _transferFrom(idToOwner[_tokenId], _newOwner, _tokenId);
-    uint256 reward = rewards[_tokenId];
+    reward = rewards[_tokenId];
     delete rewards[_tokenId];
-    return reward;
+    
   }
   
   /**
@@ -371,7 +369,7 @@ Pausable
    * @notice Require the store to approve the transfer.
    */
   function _transferFrom(address _to, address _from, uint256 _tokenId) internal {
-    require(store.canTransfer(_to, _from, _tokenId));
+    //require(store.canTransfer(_to, _from, _tokenId));
     super._transferFrom(_to, _from, _tokenId);
     arianeeWhitelist.addWhitelistedAddress(_tokenId, _to);
   }
@@ -417,7 +415,7 @@ Pausable
    * @param _tokenType for which we want the token access.
    * @return Token access of _tokenId.
    */
-  function tokenHashedAccess(uint256 _tokenId, uint256 _tokenType) external view returns(bytes32 _tokenAccess){
+  function tokenHashedAccess(uint256 _tokenId, uint256 _tokenType) external view returns(address _tokenAccess){
       require(idToOwner[_tokenId] != address(0), NOT_VALID_NFT);
       _tokenAccess = tokenAccess[_tokenId][_tokenType];
   }
