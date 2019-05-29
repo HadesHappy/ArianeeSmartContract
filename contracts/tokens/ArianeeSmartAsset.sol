@@ -87,7 +87,7 @@ Pausable
   /**
    * @dev This emits when a token is hydrated.
    */
-  event Hydrated(uint256 _tokenId, bytes32 _imprint, string _uri, address _encryptedInitialKey, uint256 _tokenRecoveryTimestamp, bool _initialKeyIsRequestKey, uint256 _tokenCreation);
+  event Hydrated(uint256 _tokenId, bytes32 _imprint, string _uri, address _initialKey, uint256 _tokenRecoveryTimestamp, bool _initialKeyIsRequestKey, uint256 _tokenCreation);
 
   /**
    * @dev This emits when a issuer request a NFT recovery.
@@ -188,21 +188,21 @@ Pausable
    * @param _tokenId ID of the NFT to modify.
    * @param _imprint Proof of the certification.
    * @param _uri URI of the JSON certification.
-   * @param _encryptedInitialKey Initial encrypted key.
+   * @param _initialKey Initial key.
    * @param _tokenRecoveryTimestamp Limit date for the issuer to be able to transfer back the NFT.
    * @param _initialKeyIsRequestKey If true set initial key as request key.
    */
-  function hydrateToken(uint256 _tokenId, bytes32 _imprint, string memory _uri, address _encryptedInitialKey, uint256 _tokenRecoveryTimestamp, bool _initialKeyIsRequestKey, address _owner) public hasAbility(ABILITY_CREATE_ASSET) whenNotPaused() isOperator(_tokenId, _owner) returns(uint256){
+  function hydrateToken(uint256 _tokenId, bytes32 _imprint, string memory _uri, address _initialKey, uint256 _tokenRecoveryTimestamp, bool _initialKeyIsRequestKey, address _owner) public hasAbility(ABILITY_CREATE_ASSET) whenNotPaused() isOperator(_tokenId, _owner) returns(uint256){
     require(!(certificate[_tokenId].tokenCreationDate > 0), NFT_ALREADY_SET);
     uint256 _tokenCreation = block.timestamp;
-    tokenAccess[_tokenId][0] = _encryptedInitialKey;
+    tokenAccess[_tokenId][0] = _initialKey;
     idToImprint[_tokenId] = _imprint;
     idToUri[_tokenId] = _uri;
     
     arianeeWhitelist.addWhitelistedAddress(_tokenId, _owner);
 
     if (_initialKeyIsRequestKey) {
-      tokenAccess[_tokenId][1] = _encryptedInitialKey;
+      tokenAccess[_tokenId][1] = _initialKey;
     }
     
     Cert memory _cert = Cert({
@@ -213,7 +213,7 @@ Pausable
             
     certificate[_tokenId] = _cert;
 
-    emit Hydrated(_tokenId, _imprint, _uri, _encryptedInitialKey, _tokenRecoveryTimestamp, _initialKeyIsRequestKey, _tokenCreation);
+    emit Hydrated(_tokenId, _imprint, _uri, _initialKey, _tokenRecoveryTimestamp, _initialKeyIsRequestKey, _tokenCreation);
 
     return rewards[_tokenId];
   }
@@ -299,21 +299,21 @@ Pausable
    * @dev Add a token access to a NFT.
    * @notice can only be called by an NFT's operator.
    * @param _tokenId ID of the NFT.
-   * @param _encryptedTokenKey Encoded token access to add.
+   * @param _key Public address of the token to encode the hash with.
    * @param _enable Enable or disable the token access.
-   * @param _tokenType Type of token access (0=view, 1=service, 2=transfer).
+   * @param _tokenType Type of token access (0=view, 1=tranfer).
    * @return true.
    */
-  function addTokenAccess(uint256 _tokenId, address _encryptedTokenKey, bool _enable, uint256 _tokenType) external isOperator(_tokenId, msg.sender) whenNotPaused() {
+  function addTokenAccess(uint256 _tokenId, address _key, bool _enable, uint256 _tokenType) external isOperator(_tokenId, msg.sender) whenNotPaused() {
       require(_tokenType>0);
     if (_enable) {
-      tokenAccess[_tokenId][_tokenType] = _encryptedTokenKey;
+      tokenAccess[_tokenId][_tokenType] = _key;
     }
     else {
       tokenAccess[_tokenId][_tokenType] = address(0);
     }
 
-    emit tokenAccessAdded(_tokenId, _encryptedTokenKey, _enable, _tokenType);
+    emit tokenAccessAdded(_tokenId, _key, _enable, _tokenType);
   }
 
   /**
@@ -329,11 +329,11 @@ Pausable
   /**
    * @dev Check if a token access is valid.
    * @param _tokenId ID of the NFT to validate.
-   * @param _tokenKey String to encode to check transfer token access.
+   * @param _hash Hash of tokenId + newOwner address.
    * @param _tokenType Type of token access (0=view, 1=transfer).
    */
-  function isTokenValid(uint256 _tokenId, bytes32 _tokenKey, uint256 _tokenType, bytes memory _signature) public view returns (bool){
-    return ECDSA.recover(_tokenKey, _signature) ==  tokenAccess[_tokenId][_tokenType];
+  function isTokenValid(uint256 _tokenId, bytes32 _hash, uint256 _tokenType, bytes memory _signature) public view returns (bool){
+    return ECDSA.recover(_hash, _signature) ==  tokenAccess[_tokenId][_tokenType];
   }
 
   /**
@@ -342,16 +342,16 @@ Pausable
    * @notice Has to be called through an authorized contract.
    * @notice Automatically approve the requester if _tokenKey is valid to allow transferFrom without removing ERC721 compliance.
    * @param _tokenId ID of the NFT to transfer.
-   * @param _tokenKey String to encode to check transfer token access.
+   * @param _hash Hash of tokenId + newOwner address.
    * @param _keepRequestToken If false erase the access token of the NFT.
    * @param _newOwner Address of the new owner of the NFT.
    * @return total rewards of this NFT.
    */
-  function requestToken(uint256 _tokenId, bytes32 _tokenKey, bool _keepRequestToken, address _newOwner, bytes memory _signature) public hasAbility(ABILITY_CREATE_ASSET) whenNotPaused() returns(uint256 reward, bytes32 message){
+  function requestToken(uint256 _tokenId, bytes32 _hash, bool _keepRequestToken, address _newOwner, bytes memory _signature) public hasAbility(ABILITY_CREATE_ASSET) whenNotPaused() returns(uint256 reward, bytes32 message){
       
-    require(isTokenValid(_tokenId, _tokenKey, 1, _signature));
+    require(isTokenValid(_tokenId, _hash, 1, _signature));
     bytes32 message = keccak256(abi.encode(_tokenId, _newOwner));
-    require(ECDSA.toEthSignedMessageHash(message) == _tokenKey);
+    require(ECDSA.toEthSignedMessageHash(message) == _hash);
     
     idToApproval[_tokenId] = msg.sender;
     
