@@ -101,21 +101,6 @@ Ownable
     _;
   }
 
-  /**
-   * @dev Slice text.
-   * @param _begin first byte to return (first is 1).
-   * @param _end last param to return.
-   * @param _text bytes to slice.
-   * @return text sliced.
-   */
-  function _getSlice(uint256 _begin, uint256 _end, bytes memory _text) internal pure returns (bytes memory) {
-    bytes memory _a = new bytes(_end-_begin+1);
-    for(uint i=0;i<=_end-_begin;i++){
-        _a[i] = bytes(_text)[i+_begin-1];
-    }
-    return bytes(_a);    
-  }
-
    /**
     * @dev Convert a bytes in bytes3.
     * @param _inBytes input bytes.
@@ -143,8 +128,7 @@ Ownable
     approvedList[_newIdentity] = true;
     
     bytes memory _bytesAddress = abi.encodePacked(_newIdentity);
-    bytes memory _addressIdDyn = _getSlice(1,4,_bytesAddress);
-    bytes3 _addressId = _convertBytesToBytes3(_addressIdDyn);
+    bytes3 _addressId = _convertBytesToBytes3(_bytesAddress);
     
     addressListing[_addressId] = _newIdentity;
     
