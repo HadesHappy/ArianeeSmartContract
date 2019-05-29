@@ -180,11 +180,14 @@ Ownable
   /**
    * @dev Validate waiting informations provided by the identity.
    * @notice Can only be called by the validator.
+   * @param _uriToValidate uri to be validated.
    * @param _identity address to be validated.
    */
-  function validateInformation(address _identity, bytes32 _imprintToValidate) public {
+  function validateInformation(address _identity, string memory _uriToValidate, bytes32 _imprintToValidate) public {
     require(msg.sender == validatorAddress);
     require(addressToWaitingImprint[_identity] == _imprintToValidate);
+    require(keccak256(abi.encodePacked(addressToWaitingUri[_identity])) == keccak256(abi.encodePacked(_uriToValidate)));
+    
     addressToUri[_identity] = addressToWaitingUri[_identity];
     addressToImprint[_identity] =  addressToWaitingImprint[_identity];
 
