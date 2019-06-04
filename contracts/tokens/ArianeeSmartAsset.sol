@@ -369,7 +369,7 @@ Pausable
    * @notice Require the store to approve the transfer.
    */
   function _transferFrom(address _to, address _from, uint256 _tokenId) internal {
-    //require(store.canTransfer(_to, _from, _tokenId));
+    require(store.canTransfer(_to, _from, _tokenId));
     super._transferFrom(_to, _from, _tokenId);
     arianeeWhitelist.addWhitelistedAddress(_tokenId, _to);
   }
