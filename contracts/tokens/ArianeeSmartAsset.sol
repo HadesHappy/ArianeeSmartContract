@@ -1,20 +1,22 @@
 pragma solidity 0.5.6;
 
-import "@0xcert/ethereum-utils-contracts/src/contracts/permission/abilitable.sol";
-import "@0xcert/ethereum-utils-contracts/src/contracts/permission/ownable.sol";
-import "./Pausable.sol";
-import "./ECDSA.sol";
-
-import "@0xcert/ethereum-erc721-contracts/src/contracts/nf-token-metadata-enumerable.sol";
-
 contract ArianeeWhitelist {
   function addWhitelistedAddress(uint256 _tokenId, address _address) public;
 }
+
 
 contract ArianeeStore{
     function canTransfer(address _to,address _from,uint256 _tokenId) public returns(bool);
 }
 
+
+import "@0xcert/ethereum-utils-contracts/src/contracts/permission/abilitable.sol";
+import "@0xcert/ethereum-utils-contracts/src/contracts/permission/ownable.sol";
+import "./Pausable.sol";
+import "./ECDSA.sol";
+import "@0xcert/ethereum-erc721-contracts/src/contracts/nf-token-metadata-enumerable.sol";
+
+/// @title Contract handling Arianee Certificates.
 contract ArianeeSmartAsset is
 NFTokenMetadataEnumerable,
 Abilitable,
@@ -63,7 +65,6 @@ Pausable
       uint256 tokenRecoveryTimestamp;
   }
   
-  
   /**
    * @dev Ability to create and hydrate NFT.
    */
@@ -109,7 +110,6 @@ Pausable
    */
   event tokenAccessAdded(uint256 _tokenId, address _encryptedTokenKey, bool _enable, uint256 _tokenType);
 
-
   /**
    * @dev Check if the msg.sender can operate the NFT.
    * @param _tokenId ID of the NFT to test.
@@ -121,7 +121,7 @@ Pausable
   }
 
   /**
-   * @dev Check if an operator is valid for a given NFT.
+   * @notice Check if an operator is valid for a given NFT.
    * @param _tokenId nft to check.
    * @param _operator operator to check.
    * @return true if operator is valid.
@@ -143,7 +143,7 @@ Pausable
   }
   
   /**
-   * @dev Change the base URI address.
+   * @notice Change the base URI address.
    * @param _newURIBase the new URI base address.
    */
   function setUriBase(string memory _newURIBase) public onlyOwner(){
@@ -151,7 +151,7 @@ Pausable
   }
   
   /**
-   * @dev Change address of the store infrastructure.
+   * @notice Change address of the store infrastructure.
    * @param _storeAddress new address of the store.
    */
   function setStoreAddress(address _storeAddress) public onlyOwner(){
@@ -160,7 +160,7 @@ Pausable
   }
   
   /**
-   * @dev Change address of the whitelist.
+   * @notice Change address of the whitelist.
    * @param _whitelistAddres new address of the whitelist.
    */
   function setWhitelistAddress(address _whitelistAddres) public onlyOwner(){
@@ -169,9 +169,9 @@ Pausable
   }
 
   /**
-   * @dev Reserve a NFT at the given ID.
-   * @notice Has to be called through an authorized contract.
-   * @notice Can only be called by an authorized address.
+   * @notice Reserve a NFT at the given ID.
+   * @dev Has to be called through an authorized contract.
+   * @dev Can only be called by an authorized address.
    * @param _tokenId ID to reserve.
    * @param _to receiver of the token.
    * @param _rewards total rewards of this NFT.
@@ -182,9 +182,9 @@ Pausable
   }
 
   /**
-   * @dev Specify information on a reserved NFT.
-   * @notice Has to be called through an authorized contract.
-   * @notice Can only be called once and by an NFT's operator.
+   * @notice Specify information on a reserved NFT.
+   * @dev to be called through an authorized contract.
+   * @dev Can only be called once and by an NFT's operator.
    * @param _tokenId ID of the NFT to modify.
    * @param _imprint Proof of the certification.
    * @param _uri URI of the JSON certification.
@@ -219,8 +219,8 @@ Pausable
   }
 
   /**
-   * @dev Recover the NFT to the issuer.
-   * @notice Works only if called by the issuer and if called before the token Recovery Timestamp of the NFT.
+   * @notice Recover the NFT to the issuer.
+   * @dev only if called by the issuer and if called before the token Recovery Timestamp of the NFT.
    * @param _tokenId ID of the NFT to recover.
    */
   function recoverTokenToIssuer(uint256 _tokenId) public whenNotPaused() isIssuer(_tokenId) {
@@ -232,8 +232,8 @@ Pausable
   }
 
   /**
-   * @dev Update a recovery request (doesn't transfer the NFT).
-   * @notice Works only if called by the issuer.
+   * @notice Update a recovery request (doesn't transfer the NFT).
+   * @dev Works only if called by the issuer.
    * @param _tokenId ID of the NFT to recover.
    * @param _active boolean to active or unactive the request.
    */
@@ -244,8 +244,8 @@ Pausable
   }
 
   /**
-   * @dev Valid a recovery request and transfer the NFT to the issuer.
-   * @notice Works only if the request is active and if called by the owner of the contract.
+   * @notice Valid a recovery request and transfer the NFT to the issuer.
+   * @dev only if the request is active and if called by the owner of the contract.
    * @param _tokenId Id of the NFT to recover.
    */
   function validRecoveryRequest(uint256 _tokenId) public onlyOwner(){
@@ -269,7 +269,7 @@ Pausable
   }
 
   /**
-   * @dev External function to update the tokenURI.
+   * @notice External function to update the tokenURI.
    * @notice Can only be called by the NFT's issuer.
    * @param _tokenId ID of the NFT to edit.
    * @param _uri New URI for the certificate.
@@ -282,7 +282,7 @@ Pausable
   }
 
   /**
-   * @dev return the URI of a NFT.
+   * @notice return the URI of a NFT.
    * @param _tokenId uint256 ID of the NFT.
    * @return URI of the NFT.
    */
@@ -296,7 +296,7 @@ Pausable
   }
 
   /**
-   * @dev Add a token access to a NFT.
+   * @notice Add a token access to a NFT.
    * @notice can only be called by an NFT's operator.
    * @param _tokenId ID of the NFT.
    * @param _key Public address of the token to encode the hash with.
@@ -317,7 +317,7 @@ Pausable
   }
 
   /**
-   * @dev Check if a token is requestable.
+   * @notice Check if a token is requestable.
    * @param _tokenId uint256 ID of the token to check.
    * @return True if the NFT is requestable.
    */
@@ -327,7 +327,7 @@ Pausable
 
 
   /**
-   * @dev Check if a token access is valid.
+   * @notice Check if a token access is valid.
    * @param _tokenId ID of the NFT to validate.
    * @param _hash Hash of tokenId + newOwner address.
    * @param _tokenType Type of token access (0=view, 1=transfer).
@@ -337,10 +337,10 @@ Pausable
   }
 
   /**
-   * @dev Transfers the ownership of a NFT to another address
+   * @notice Transfers the ownership of a NFT to another address
    * @notice Requires to send the correct tokenKey and the NFT has to be requestable
-   * @notice Has to be called through an authorized contract.
-   * @notice Automatically approve the requester if _tokenKey is valid to allow transferFrom without removing ERC721 compliance.
+   * @dev Has to be called through an authorized contract.
+   * @dev approve the requester if _tokenKey is valid to allow transferFrom without removing ERC721 compliance.
    * @param _tokenId ID of the NFT to transfer.
    * @param _hash Hash of tokenId + newOwner address.
    * @param _keepRequestToken If false erase the access token of the NFT.
@@ -365,8 +365,8 @@ Pausable
   }
   
   /**
-   * @dev Legacy function of TransferFrom, add the new owner as whitelisted for the message.
-   * @notice Require the store to approve the transfer.
+   * @notice Legacy function of TransferFrom, add the new owner as whitelisted for the message.
+   * @dev Require the store to approve the transfer.
    */
   function _transferFrom(address _to, address _from, uint256 _tokenId) internal {
     require(store.canTransfer(_to, _from, _tokenId));
