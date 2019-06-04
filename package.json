@@ -1,7 +1,7 @@
 {
-  "name": "@0xcert/ethereum-erc721",
-  "version": "1.10.0",
-  "description": "Non-fungible token standard implementation for the Ethereum blockchain.",
+  "name": "arianeesmartcontract",
+  "version": "1.0.0",
+  "description": "",
   "main": "truffle.js",
   "directories": {
     "contracts": "contracts",
@@ -20,16 +20,16 @@
     "prepublish": "npm run compile",
     "test": "npm run clean && truffle test"
   },
-  "author": "0xcert",
-  "license": "MIT",
+  "author": "Arianee",
+  "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/0xcert/ethereum-erc721.git"
+    "url": "git+https://github.com/Arianee/ArianeeSmartContract"
   },
   "bugs": {
-    "url": "https://github.com/0xcert/etheethereum-erc721reum/issues"
+    "url": "https://github.com/Arianee/ArianeeSmartContract/issues"
   },
-  "homepage": "https://github.com/0xcert/ethereum-erc721#readme",
+  "homepage": "https://github.com/Arianee/ArianeeSmartContract#readme",
   "keywords": [
     "ethereum",
     "blockchain",
@@ -60,6 +60,6 @@
   },
   "dependencies": {
     "@0xcert/ethereum-erc721-contracts": "^1.7.0",
-    "@0xcert/ethereum-utils": "^1.7.0",
+    "@0xcert/ethereum-utils": "^1.7.0"
   }
 }
