@@ -1,4 +1,4 @@
-pragma solidity 0.5.1;
+pragma solidity 0.5.6;
 
 import "@0xcert/ethereum-utils-contracts/src/contracts/permission/abilitable.sol";
 import "@0xcert/ethereum-utils-contracts/src/contracts/permission/ownable.sol";
@@ -176,7 +176,7 @@ Pausable
    * @param _to receiver of the token.
    * @param _rewards total rewards of this NFT.
    */
-  function reserveToken(uint256 _tokenId, address _to, uint256 _rewards) public hasAbility(ABILITY_CREATE_ASSET) whenNotPaused() {
+  function reserveToken(uint256 _tokenId, address _to, uint256 _rewards) public hasAbilities(ABILITY_CREATE_ASSET) whenNotPaused() {
     super._create(_to, _tokenId);
     rewards[_tokenId] = _rewards;
   }
@@ -192,7 +192,7 @@ Pausable
    * @param _tokenRecoveryTimestamp Limit date for the issuer to be able to transfer back the NFT.
    * @param _initialKeyIsRequestKey If true set initial key as request key.
    */
-  function hydrateToken(uint256 _tokenId, bytes32 _imprint, string memory _uri, address _initialKey, uint256 _tokenRecoveryTimestamp, bool _initialKeyIsRequestKey, address _owner) public hasAbility(ABILITY_CREATE_ASSET) whenNotPaused() isOperator(_tokenId, _owner) returns(uint256){
+  function hydrateToken(uint256 _tokenId, bytes32 _imprint, string memory _uri, address _initialKey, uint256 _tokenRecoveryTimestamp, bool _initialKeyIsRequestKey, address _owner) public hasAbilities(ABILITY_CREATE_ASSET) whenNotPaused() isOperator(_tokenId, _owner) returns(uint256){
     require(!(certificate[_tokenId].tokenCreationDate > 0), NFT_ALREADY_SET);
     uint256 _tokenCreation = block.timestamp;
     tokenAccess[_tokenId][0] = _initialKey;
@@ -347,8 +347,8 @@ Pausable
    * @param _newOwner Address of the new owner of the NFT.
    * @return total rewards of this NFT.
    */
-  function requestToken(uint256 _tokenId, bytes32 _hash, bool _keepRequestToken, address _newOwner, bytes memory _signature) public hasAbility(ABILITY_CREATE_ASSET) whenNotPaused() returns(uint256 reward, bytes32 message){
-      
+  function requestToken(uint256 _tokenId, bytes32 _hash, bool _keepRequestToken, address _newOwner, bytes memory _signature) public hasAbilities(ABILITY_CREATE_ASSET) whenNotPaused() returns(uint256 reward){
+    
     require(isTokenValid(_tokenId, _hash, 1, _signature));
     bytes32 message = keccak256(abi.encode(_tokenId, _newOwner));
     require(ECDSA.toEthSignedMessageHash(message) == _hash);
