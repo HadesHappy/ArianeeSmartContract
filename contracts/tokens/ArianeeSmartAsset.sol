@@ -1,12 +1,12 @@
 pragma solidity 0.5.6;
 
 contract ArianeeWhitelist {
-  function addWhitelistedAddress(uint256 _tokenId, address _address) public;
+  function addWhitelistedAddress(uint256 _tokenId, address _address) external;
 }
 
 
 contract ArianeeStore{
-    function canTransfer(address _to,address _from,uint256 _tokenId) public returns(bool);
+    function canTransfer(address _to,address _from,uint256 _tokenId) external returns(bool);
 }
 
 
