@@ -7,6 +7,7 @@ contract ArianeeWhitelist {
 
 contract ArianeeStore{
     function canTransfer(address _to,address _from,uint256 _tokenId) external returns(bool);
+    function canDestroy(uint256 _tokenId, address _sender) external returns(bool);
 }
 
 
@@ -149,7 +150,7 @@ Pausable
   )
   public
   {
-    nftName = "ArianeeSmartAsset";
+    nftName = "Arianee Smart-Asset";
     nftSymbol = "AriaSA";
     setWhitelistAddress(_arianeeWhitelistAddress);
     _setUriBase("https://cert.arianee.org/");
@@ -218,8 +219,6 @@ Pausable
     emit TokenRecovered(_tokenId);
   }
 
-  
-
   /**
    * @notice External function to update the tokenURI.
    * @notice Can only be called by the NFT's issuer.
@@ -286,7 +285,9 @@ Pausable
    * @notice Can only be called by the issuer.
    * @param _tokenId to destroy.
    */
-  function destroy(uint256 _tokenId) external isIssuer(_tokenId) whenNotPaused() {
+  function destroy(uint256 _tokenId) external whenNotPaused() {
+    require(store.canDestroy(_tokenId, msg.sender));
+
     _destroy(_tokenId);
     idToImprint[_tokenId] = "";
     idToUri[_tokenId] = "";
