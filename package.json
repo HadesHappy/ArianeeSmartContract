@@ -16,8 +16,6 @@
     "lint": "eslint './**/*.js?(x)'",
     "migrate": "truffle migrate",
     "networks": "truffle networks",
-    "postpublish": "npm run clean",
-    "prepublish": "npm run compile",
     "test": "npm run clean && truffle test"
   },
   "author": "Arianee",
